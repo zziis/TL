@@ -348,3 +348,54 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         await manager.disconnect_visitor(user_id)
+
+# ----------------------------------------------------
+# APK Store
+# ----------------------------------------------------
+import json
+APK_STORE_FILE = BASE_DIR / "apk_store.json"
+APK_UPLOAD_DIR = UPLOAD_DIR / "apk"
+APK_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+def _load_apks():
+    try:
+        return json.loads(APK_STORE_FILE.read_text(encoding="utf-8")) if APK_STORE_FILE.exists() else []
+    except Exception:
+        return []
+
+def _save_apks(items):
+    APK_STORE_FILE.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
+
+@app.get("/api/apk-store")
+async def apk_store_list():
+    return {"apps": _load_apks()}
+
+@app.post("/api/admin/apk-store")
+async def apk_store_add(secret: str = Form(...), name: str = Form(...), version: str = Form(""), description: str = Form(""), icon: UploadFile = File(...), apk: UploadFile = File(...)):
+    if secret != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    if not apk.filename.lower().endswith(".apk"):
+        raise HTTPException(status_code=400, detail="APK file required")
+    app_id = uuid.uuid4().hex[:12]
+    icon_ext = Path(icon.filename or "icon.png").suffix.lower() or ".png"
+    icon_name = f"apk_icon_{app_id}{icon_ext}"
+    apk_name = f"app_{app_id}.apk"
+    (APK_UPLOAD_DIR / icon_name).write_bytes(await icon.read())
+    (APK_UPLOAD_DIR / apk_name).write_bytes(await apk.read())
+    item = {"id": app_id, "name": name.strip(), "version": version.strip(), "description": description.strip(), "icon_url": f"/uploads/apk/{icon_name}", "apk_url": f"/uploads/apk/{apk_name}", "created_at": datetime.now().isoformat(timespec="seconds")}
+    items = _load_apks(); items.insert(0, item); _save_apks(items)
+    return item
+
+@app.delete("/api/admin/apk-store/{app_id}")
+async def apk_store_delete(app_id: str, secret: str = Query(...)):
+    if secret != ADMIN_SECRET_KEY:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    items = _load_apks(); target = next((x for x in items if x.get("id") == app_id), None)
+    if not target: raise HTTPException(status_code=404, detail="Not found")
+    for key in ("icon_url", "apk_url"):
+        try:
+            p = BASE_DIR / target[key].lstrip("/")
+            if p.exists(): p.unlink()
+        except Exception: pass
+    _save_apks([x for x in items if x.get("id") != app_id])
+    return {"ok": True}

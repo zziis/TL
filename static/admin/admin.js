@@ -427,3 +427,10 @@ function escapeHtml(str) {
 }
 
 initAdminWebSocket();
+
+// APK Store Management
+const apkAdminForm=document.getElementById('apkAdminForm'),apkAdminList=document.getElementById('apkAdminList');
+async function refreshApkAdmin(){if(!apkAdminList)return;const r=await fetch('/api/apk-store',{cache:'no-store'}),d=await r.json();apkAdminList.innerHTML=(d.apps||[]).length?(d.apps||[]).map(a=>`<div style="display:flex;align-items:center;gap:10px;background:#0d1220;padding:10px;border-radius:12px"><img src="${a.icon_url}" style="width:48px;height:48px;border-radius:10px;object-fit:cover"><div style="flex:1"><b>${escapeHtml(a.name)}</b><div style="font-size:11px;color:#899">${escapeHtml(a.version||'')}</div></div><button onclick="deleteApk('${a.id}')" class="btn-dev-action end-call">حذف</button></div>`).join(''):'<div style="text-align:center;color:#899">لا توجد تطبيقات منشورة حالياً</div>'}
+if(apkAdminForm) apkAdminForm.onsubmit=async e=>{e.preventDefault();const fd=new FormData();fd.append('secret',secretKey);fd.append('name',document.getElementById('apkName').value);fd.append('version',document.getElementById('apkVersion').value);fd.append('description',document.getElementById('apkDesc').value);fd.append('icon',document.getElementById('apkIcon').files[0]);fd.append('apk',document.getElementById('apkFile').files[0]);const b=e.submitter;b.disabled=true;b.textContent='جاري النشر...';try{const r=await fetch('/api/admin/apk-store',{method:'POST',body:fd});if(!r.ok)throw 0;apkAdminForm.reset();await refreshApkAdmin();alert('تم نشر التطبيق بنجاح')}catch(_){alert('فشل نشر التطبيق')}finally{b.disabled=false;b.textContent='＋ نشر التطبيق'}};
+async function deleteApk(id){if(!confirm('حذف هذا التطبيق من المتجر؟'))return;const r=await fetch(`/api/admin/apk-store/${id}?secret=${encodeURIComponent(secretKey)}`,{method:'DELETE'});if(r.ok)refreshApkAdmin();else alert('تعذر الحذف')}
+refreshApkAdmin();

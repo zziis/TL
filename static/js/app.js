@@ -658,3 +658,16 @@ function showMutedNotice(muted) {
 
 // Start
 initWebSocket();
+
+// APK Store
+const apkStoreBtn=document.getElementById('apkStoreBtn'), apkStoreModal=document.getElementById('apkStoreModal'), closeApkStore=document.getElementById('closeApkStore'), apkStoreGrid=document.getElementById('apkStoreGrid');
+async function loadApkStore(){
+  apkStoreGrid.innerHTML='<div class="apk-empty">جاري التحميل...</div>';
+  try{const r=await fetch('/api/apk-store',{cache:'no-store'});const d=await r.json();
+    if(!d.apps||!d.apps.length){apkStoreGrid.innerHTML='<div class="apk-empty"><b>🚀 قريباً</b>ستُضاف التطبيقات هنا<br><small>Apps will be added here soon</small></div>';return;}
+    apkStoreGrid.innerHTML=d.apps.map(a=>`<div class="apk-card"><img src="${a.icon_url}" alt=""><h3>${escapeApk(a.name)}</h3><small>${escapeApk(a.version||'')}</small><p>${escapeApk(a.description||'')}</p><a class="apk-download" href="${a.apk_url}" download>⬇ تنزيل APK</a></div>`).join('');
+  }catch(e){apkStoreGrid.innerHTML='<div class="apk-empty">تعذر تحميل المتجر</div>'}
+}
+function escapeApk(v){const d=document.createElement('div');d.textContent=v||'';return d.innerHTML}
+if(apkStoreBtn) apkStoreBtn.onclick=()=>{apkStoreModal.classList.add('active');loadApkStore()};
+if(closeApkStore) closeApkStore.onclick=()=>apkStoreModal.classList.remove('active');

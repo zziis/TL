@@ -86,6 +86,19 @@
     </section>
   </div>
 
-  <script src="/static/admin/admin.js?v=20260919-3"></script>
+  <section class="panel-card" style="margin:18px;">
+    <div class="panel-header"><div class="panel-title">📱 إدارة متجر APK</div></div>
+    <form id="apkAdminForm" style="display:grid;gap:10px;padding:12px;">
+      <input id="apkName" required placeholder="اسم التطبيق" class="chat-input">
+      <input id="apkVersion" placeholder="الإصدار - مثال 1.0.0" class="chat-input">
+      <input id="apkDesc" placeholder="وصف مختصر" class="chat-input">
+      <label>صورة التطبيق <input id="apkIcon" type="file" accept="image/*" required></label>
+      <label>ملف APK <input id="apkFile" type="file" accept=".apk,application/vnd.android.package-archive" required></label>
+      <button class="btn-dev-action" type="submit">＋ نشر التطبيق</button>
+    </form>
+    <div id="apkAdminList" style="display:grid;gap:8px;padding:12px;"></div>
+  </section>
+
+  <script src="/static/admin/admin.js?v=20260919-apk1"></script>
 </body>
 </html>

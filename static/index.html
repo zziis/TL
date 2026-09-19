@@ -37,6 +37,8 @@
       </button>
     </div>
 
+    <div class="apk-launch-wrap"><button id="apkStoreBtn" class="apk-launch-btn">📱 <b>APK</b><span>متجر التطبيقات</span></button></div>
+
     <!-- Chat Messages Window -->
     <main class="chat-window">
       <div class="chat-messages" id="chatMessages">
@@ -105,6 +107,11 @@
     </div>
   </div>
 
+  <div class="apk-store-modal" id="apkStoreModal">
+    <div class="apk-store-head"><button id="closeApkStore">✕</button><div><h2>📱 APK Store</h2><small>تنزيل التطبيقات • Download Apps</small></div></div>
+    <div id="apkStoreGrid" class="apk-store-grid"></div>
+  </div>
+
   <!-- Banned Screen (Full overlay if user is banned) -->
   <div class="banned-screen" id="bannedScreen">
     <div class="banned-icon">🚫</div>
@@ -118,6 +125,6 @@
   </div>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js?v=20260919-beauty2"></script>
+  <script src="/static/js/app.js?v=20260919-apk1"></script>
 </body>
 </html>
