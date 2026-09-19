@@ -382,12 +382,12 @@ async function uploadAudio(blob) {
   }
 }
 
-// 7. Instant Camera Snapshot (" مباشر")
+// 7. Instant Camera Snapshot ("صورة مباشر")
 let snapStream = null;
 
 cameraSnapBtn.onclick = async () => {
   if (isMuted) {
-    alert("🚫 لا يمكنك إرسال  لأنك مكتوم.");
+    alert("🚫 لا يمكنك إرسال صور لأنك مكتوم.");
     return;
   }
   try {
@@ -448,20 +448,20 @@ async function uploadImage(fileOrBlob) {
   }
 }
 
-// 8. WebRTC Live Voice / Video Calls ("صعود ")
+// 8. WebRTC Live Voice / Video Calls ("صعود مايك أو كاميرا")
 callVoiceBtn.onclick = () => requestCall("voice");
 callVideoBtn.onclick = () => requestCall("video");
 
 function requestCall(type) {
   if (isMuted) {
-    alert("🚫 لا يمكنك طلب اختبار  لأنك مكتوم.");
+    alert("🚫 لا يمكنك طلب مكالمة لأنك مكتوم.");
     return;
   }
   callType = type;
   currentCallId = "call_" + Date.now();
 
   callModal.classList.add("active");
-  callStatusText.textContent = `اختبار سري   ${type === "voice" ? "نسبه جمالك"}... بانتظار قبول الاختبار 💀`;
+  callStatusText.textContent = `جاري طلب صعود ${type === "voice" ? "مايك (صوت)" : "كاميرا (فيديو)"}... بانتظار قبول شبح 💀`;
   
   if (type === "voice") {
     localVideo.style.display = "none";
@@ -477,7 +477,7 @@ function requestCall(type) {
 }
 
 async function handleCallAccepted(data) {
-  callStatusText.textContent = " جاري الختبار ...";
+  callStatusText.textContent = "تمت الموافقة • جاري ربط الصوت والصورة...";
   
   try {
     // Acquire local media
@@ -501,7 +501,7 @@ async function handleCallAccepted(data) {
     peerConnection.ontrack = (event) => {
       remoteVideo.srcObject = event.streams[0];
       remoteVideo.play().catch(()=>{});
-      callStatusText.textContent = "🟢 اختبار ";
+      callStatusText.textContent = "🟢 متصل الآن مع المطور";
     };
 
     peerConnection.onicecandidate = (event) => {
@@ -526,7 +526,7 @@ async function handleCallAccepted(data) {
 
   } catch (err) {
     console.error("WebRTC Error:", err);
-    alert("فشل بدء الختبار: " + err.message);
+    alert("فشل بدء المكالمة: " + err.message);
     endCallUI();
   }
 }
@@ -585,7 +585,7 @@ function showMutedNotice(muted) {
     msgInput.placeholder = "تم كتمك بواسطة الإدارة 🔇";
   } else {
     mutedToast.style.display = "none";
-    msgInput.placeholder = "اكتب رسالتك إلى زلزال...";
+    msgInput.placeholder = "اكتب رسالتك إلى شبح...";
   }
 }
 
