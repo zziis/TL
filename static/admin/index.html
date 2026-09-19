@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم شبح | GHOST CONTROL CENTER</title>
+  <link rel="stylesheet" href="/static/css/neon.css">
+  <link rel="stylesheet" href="/static/admin/admin.css">
+  <link rel="icon" type="image/svg+xml" href="/static/assets/skull.svg">
+</head>
+<body>
+
+  <!-- Incoming Call Ring Alert Overlay -->
+  <div class="incoming-call-alert" id="incomingCallAlert">
+    <div class="alert-call-title">📞 طلب اتصال جديد!</div>
+    <div class="alert-call-sub">
+      المستخدم: <strong id="callerName" style="color:#fff">...</strong> | 
+      النوع: <strong id="callTypeSpan" style="color:#00f3ff">...</strong>
+    </div>
+    <div class="alert-call-buttons">
+      <button class="btn-accept-call" id="btnAcceptCall">✓ قبول المكالمة</button>
+      <button class="btn-reject-call" id="btnRejectCall">✕ رفض</button>
+    </div>
+  </div>
+
+  <div class="admin-layout">
+    <!-- Panel 1: Online Users & Moderation -->
+    <aside class="panel-card">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>👥</span>
+          <span>الزوار المتصلين</span>
+        </div>
+        <span class="status-badge" id="userCount">0 متصل</span>
+      </div>
+      <div class="user-list" id="userList">
+        <!-- Injected dynamically -->
+      </div>
+    </aside>
+
+    <!-- Panel 2: Live WebRTC Call Studio -->
+    <main class="panel-card" style="display: flex; flex-direction: column;">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>💀</span>
+          <span>غرفة الاتصال المباشر (شبح)</span>
+        </div>
+        <span style="font-size: 12px; color: var(--neon-cyan);" id="devCallStatus">جاهز • في وضع التخفي</span>
+      </div>
+
+      <div class="video-studio-box">
+        <video id="visitorVideo" class="visitor-remote-feed" autoplay playsinline></video>
+        <div class="dev-stealth-banner">
+          <span>🛡️</span>
+          <span>هويتك مخفية برمز شبح</span>
+        </div>
+      </div>
+
+      <div class="dev-controls-bar">
+        <button id="toggleMaskBtn" class="btn-dev-action stealth-active">
+          💀 قناع شبح: مفعل (أنت مخفي)
+        </button>
+        <button id="devHangupBtn" class="btn-dev-action end-call">
+          📞 إنهاء المكالمة
+        </button>
+      </div>
+    </main>
+
+    <!-- Panel 3: Direct Messages & Media Stream -->
+    <section class="panel-card">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span>💬</span>
+          <span>سجل الرسائل والوسائط</span>
+        </div>
+      </div>
+
+      <div class="admin-chat-feed" id="adminChatFeed">
+        <!-- Injected dynamically -->
+      </div>
+
+      <div class="chat-input-bar">
+        <input type="text" id="devMsgInput" class="chat-input" placeholder="رد على المستخدم بهوية شبح...">
+        <button id="devSendBtn" class="btn-circle-tool btn-send-msg">➤</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/admin/admin.js"></script>
+</body>
+</html>
