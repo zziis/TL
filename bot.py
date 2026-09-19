@@ -21,22 +21,13 @@ else:
 
 
 def get_start_keyboard():
-    # If URL is https, we can use web_app button. If localhost or http, URL button is used.
-    is_https = WEBAPP_URL.startswith("https://")
-    
     buttons = []
-    if is_https:
+    # Telegram WebApp/URL buttons require a valid public HTTPS URL.
+    if WEBAPP_URL.startswith("https://"):
         buttons.append([
             InlineKeyboardButton(
                 text="💀 دخول منصة شبح (Mini App) ⚡",
                 web_app=WebAppInfo(url=WEBAPP_URL)
-            )
-        ])
-    else:
-        buttons.append([
-            InlineKeyboardButton(
-                text="💀 فتح منصة شبح في المتصفح ⚡",
-                url=WEBAPP_URL
             )
         ])
         
@@ -120,10 +111,12 @@ async def notify_admin_call_request(user_name: str, user_id: str, call_type: str
             f"🆔 <b>رقم المكالمة:</b> <code>{call_id}</code>\n\n"
             f"⚡ ادخل لوحة المطور لقبول المكالمة أو الرفض."
         )
-        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚡ فتح لوحة تحكم شبح", url=admin_url)]
-        ])
+        kb = None
+        if WEBAPP_URL.startswith("https://"):
+            admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="⚡ فتح لوحة تحكم شبح", url=admin_url)]
+            ])
         await bot.send_message(
             chat_id=DEVELOPER_ID,
             text=text,
