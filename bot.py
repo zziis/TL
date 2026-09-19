@@ -26,6 +26,28 @@ def is_admin(user_id) -> bool:
     return uid == str(DEVELOPER_ID) or uid in {str(x) for x in ADMIN_IDS}
 
 
+def user_manage_keyboard(user_id: str):
+    uid = str(user_id)
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔇 كتم", callback_data=f"umute:{uid}"),
+            InlineKeyboardButton(text="🔊 إلغاء الكتم", callback_data=f"uunmute:{uid}"),
+        ],
+        [
+            InlineKeyboardButton(text="⛔ حظر", callback_data=f"uban:{uid}"),
+            InlineKeyboardButton(text="🚪 طرد", callback_data=f"ukick:{uid}"),
+        ],
+        [InlineKeyboardButton(text="💬 رد", callback_data=f"ureply:{uid}")]
+    ])
+
+def mute_duration_keyboard(user_id: str):
+    uid = str(user_id)
+    opts = [("10 د",10),("1 س",60),("6 س",360),("24 س",1440),("7 أيام",10080),("دائم",0)]
+    rows=[]
+    for i in range(0,len(opts),3):
+        rows.append([InlineKeyboardButton(text=t, callback_data=f"umutedo:{uid}:{m}") for t,m in opts[i:i+3]])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
 def get_start_keyboard(admin: bool = False):
     is_https = WEBAPP_URL.startswith("https://")
     buttons = []
@@ -119,11 +141,19 @@ if dp:
                         logger.error(f"Developer relay failed: {e}")
             return
         uid = str(message.from_user.id)
+        if await db.is_muted(uid):
+            remaining = await db.mute_remaining(uid)
+            await message.answer(f"🔇 أنت مكتوم من الإدارة. المدة المتبقية: {remaining}")
+            return
+        if await db.is_banned(uid):
+            await message.answer("⛔ تم حظرك من استخدام المنصة.")
+            return
         try:
             header = await bot.send_message(
                 chat_id=DEVELOPER_ID,
                 text=f"💬 <b>رسالة من مستخدم</b>\n👤 {message.from_user.full_name}\n🆔 <code>{uid}</code>",
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup=user_manage_keyboard(uid)
             )
             copied = await bot.copy_message(chat_id=DEVELOPER_ID, from_chat_id=message.chat.id, message_id=message.message_id)
             _admin_message_to_user[header.message_id] = message.from_user.id
@@ -133,6 +163,55 @@ if dp:
                 await message.answer("✓ تم فتح اتصالك المباشر مع زلزال، يمكنك الآن الإرسال والاستلام مباشرة.")
         except Exception as e:
             logger.error(f"User relay failed: {e}")
+
+    @dp.callback_query(F.data.startswith("umute:"))
+    async def admin_mute_menu(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        uid=call.data.split(":",1)[1]
+        await call.message.reply(f"🔇 اختر مدة كتم المستخدم {uid}", reply_markup=mute_duration_keyboard(uid))
+        await call.answer()
+
+    @dp.callback_query(F.data.startswith("umutedo:"))
+    async def admin_mute_do(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        _,uid,mins=call.data.split(":")
+        minutes=int(mins)
+        await db.mute_user(uid, None if minutes == 0 else minutes)
+        try: await bot.send_message(int(uid), f"🔇 تم كتمك بواسطة الإدارة. المدة: {'دائم' if minutes == 0 else await db.mute_remaining(uid)}")
+        except Exception: pass
+        await call.answer("تم الكتم", show_alert=True)
+
+    @dp.callback_query(F.data.startswith("uunmute:"))
+    async def admin_unmute(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        uid=call.data.split(":",1)[1]; await db.unmute_user(uid)
+        try: await bot.send_message(int(uid), "🔊 تم إلغاء الكتم ويمكنك المراسلة الآن.")
+        except Exception: pass
+        await call.answer("تم إلغاء الكتم", show_alert=True)
+
+    @dp.callback_query(F.data.startswith("uban:"))
+    async def admin_ban(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        uid=call.data.split(":",1)[1]; await db.ban_user(uid)
+        try: await bot.send_message(int(uid), "⛔ تم حظرك من استخدام المنصة بواسطة الإدارة.")
+        except Exception: pass
+        await call.answer("تم الحظر", show_alert=True)
+
+    @dp.callback_query(F.data.startswith("ukick:"))
+    async def admin_kick(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        uid=call.data.split(":",1)[1]; await db.mute_user(uid, 10)
+        try: await bot.send_message(int(uid), "🚪 تم إيقاف تواصلك مؤقتًا لمدة 10 دقائق بواسطة الإدارة.")
+        except Exception: pass
+        await call.answer("تم الطرد المؤقت 10 دقائق", show_alert=True)
+
+    @dp.callback_query(F.data.startswith("ureply:"))
+    async def admin_reply_hint(call: types.CallbackQuery):
+        if not is_admin(call.from_user.id): return await call.answer("غير مصرح", show_alert=True)
+        uid=call.data.split(":",1)[1]
+        msg=await call.message.reply(f"💬 اكتب ردك على هذه الرسالة لإرساله للمستخدم {uid}")
+        _admin_message_to_user[msg.message_id]=int(uid)
+        await call.answer()
 
 
 async def notify_admin_new_visitor(user: types.User):
@@ -179,9 +258,11 @@ async def notify_admin_web_message(user_name: str, user_id: str, content: str = 
             text += f"\n\n{preview}"
 
         admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
-        kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="👤 فتح محادثة المستخدم", url=admin_url)
-        ]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="👤 فتح محادثة المستخدم", url=admin_url)],
+            [InlineKeyboardButton(text="🔇 كتم", callback_data=f"umute:{user_id}"), InlineKeyboardButton(text="⛔ حظر", callback_data=f"uban:{user_id}")],
+            [InlineKeyboardButton(text="💬 رد", callback_data=f"ureply:{user_id}")]
+        ])
 
         admin_targets = ADMIN_IDS if ADMIN_IDS else [DEVELOPER_ID]
         for admin_id in admin_targets:

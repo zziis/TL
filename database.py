@@ -1,6 +1,6 @@
 import json
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Set, Optional
 from config import DATA_DIR
@@ -13,6 +13,7 @@ class Database:
         # State caches
         self.banned_users: Set[str] = set()
         self.muted_users: Set[str] = set()
+        self.muted_until: Dict[str, str] = {}
         self.active_users: Dict[str, dict] = {}  # session_id -> {id, name, username, ip, joined_at, last_seen, in_call}
         self.messages: List[dict] = []
         self.known_users: Dict[str, dict] = {}
@@ -27,6 +28,7 @@ class Database:
                     data = json.load(f)
                     self.banned_users = set(data.get("banned_users", []))
                     self.muted_users = set(data.get("muted_users", []))
+                    self.muted_until = data.get("muted_until", {}) or {}
                     self.messages = data.get("messages", [])[-500:]
                     self.known_users = data.get("known_users", {})
                     # Backfill contacts from existing visitor messages.
@@ -42,6 +44,7 @@ class Database:
             data = {
                 "banned_users": list(self.banned_users),
                 "muted_users": list(self.muted_users),
+                "muted_until": self.muted_until,
                 "messages": self.messages[-500:],
                 "known_users": self.known_users
             }
@@ -66,19 +69,53 @@ class Database:
     async def is_banned(self, user_id: str) -> bool:
         return str(user_id) in self.banned_users
 
-    async def mute_user(self, user_id: str):
+    async def mute_user(self, user_id: str, minutes: Optional[int] = None):
         async with self._lock:
-            self.muted_users.add(str(user_id))
+            uid = str(user_id)
+            self.muted_users.add(uid)
+            if minutes is None:
+                self.muted_until.pop(uid, None)
+            else:
+                self.muted_until[uid] = (datetime.now() + timedelta(minutes=minutes)).isoformat()
             self.save()
 
     async def unmute_user(self, user_id: str):
         async with self._lock:
-            if str(user_id) in self.muted_users:
-                self.muted_users.remove(str(user_id))
-                self.save()
+            uid = str(user_id)
+            self.muted_users.discard(uid)
+            self.muted_until.pop(uid, None)
+            self.save()
 
     async def is_muted(self, user_id: str) -> bool:
-        return str(user_id) in self.muted_users
+        uid = str(user_id)
+        if uid not in self.muted_users:
+            return False
+        until = self.muted_until.get(uid)
+        if until:
+            try:
+                if datetime.now() >= datetime.fromisoformat(until):
+                    await self.unmute_user(uid)
+                    return False
+            except Exception:
+                pass
+        return True
+
+    async def mute_remaining(self, user_id: str) -> str:
+        uid = str(user_id)
+        if not await self.is_muted(uid):
+            return ""
+        until = self.muted_until.get(uid)
+        if not until:
+            return "دائم"
+        try:
+            seconds = max(0, int((datetime.fromisoformat(until) - datetime.now()).total_seconds()))
+            if seconds >= 86400:
+                return f"{seconds // 86400} يوم"
+            if seconds >= 3600:
+                return f"{seconds // 3600} ساعة"
+            return f"{max(1, seconds // 60)} دقيقة"
+        except Exception:
+            return "دائم"
 
     async def add_active_user(self, session_id: str, user_data: dict):
         async with self._lock:
