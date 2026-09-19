@@ -12,6 +12,7 @@ let localStream = null;
 let selectedUserId = null;
 let pendingIceCandidates = [];
 let allMessages = [];
+let lastUsers = [];
 const unreadByUser = {};
 let isStealthMaskActive = false; // Mask active by default to protect developer identity
 
@@ -87,7 +88,8 @@ function initAdminWebSocket() {
 async function handleAdminMessage(data) {
   switch (data.type) {
     case "users_update":
-      renderUserList(data.users);
+      lastUsers = data.users || [];
+      renderUserList(lastUsers);
       break;
 
     case "incoming_call":
@@ -115,6 +117,7 @@ async function handleAdminMessage(data) {
         unreadByUser[data.message.sender_id] = (unreadByUser[data.message.sender_id] || 0) + 1;
       }
       if (String(data.message.sender_id) === String(selectedUserId) || String(data.message.target_id || "") === String(selectedUserId)) renderSelectedChat();
+      renderUserList(lastUsers);
       break;
 
     case "history":
@@ -127,7 +130,8 @@ async function handleAdminMessage(data) {
 // Render Online Visitors & Moderation Controls
 function renderUserList(users) {
   userListEl.innerHTML = "";
-  userCountEl.textContent = `${users.length} متصل`;
+  const onlineCount = users.filter(u => u.online !== false).length;
+  userCountEl.textContent = `${onlineCount} متصل • ${users.length} مستخدم`;
 
   if (users.length === 0) {
     userListEl.innerHTML = `<div style="text-align:center;color:#666;padding:20px;">لا يوجد زوار حالياً</div>`;
@@ -144,7 +148,7 @@ function renderUserList(users) {
     card.innerHTML = `
       <div class="user-meta">
         <span class="user-name-title">${escapeHtml(user.name || "زائر")}</span>
-        <span class="user-badge">${unreadByUser[user.id] ? `🔴 ${unreadByUser[user.id]} جديد` : (user.in_call ? "📞 في مكالمة" : "متصل")}</span>
+        <span class="user-badge">${unreadByUser[user.id] ? `🔴 ${unreadByUser[user.id]} جديد` : (user.in_call ? "📞 في مكالمة" : (user.online === false ? "غير متصل" : "🟢 متصل"))}</span>
       </div>
       <div style="font-size:11px;color:#889;margin-bottom:6px;">
         ID: <code>${user.id}</code> | انضم: ${user.joined_at?.split(" ")[1] || ""}

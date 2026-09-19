@@ -137,7 +137,7 @@ class ConnectionManager:
 
     async def broadcast_users_to_dev(self):
         if self.dev_socket:
-            users_data = list(db.active_users.values())
+            users_data = await db.get_users_for_admin()
             await self.send_to_dev({
                 "type": "users_update",
                 "users": users_data
@@ -292,10 +292,12 @@ async def websocket_endpoint(
                     "content": data.get("content", ""),
                     "file_url": data.get("file_url")
                 }
+                await db.touch_user(user_id, name)
                 await db.add_message(msg_obj)
                 # Broadcast to sender & developer
                 await websocket.send_json({"type": "chat", "message": msg_obj})
                 await manager.send_to_dev({"type": "chat", "message": msg_obj})
+                await manager.broadcast_users_to_dev()
 
             elif action == "call_request":
                 if await db.is_muted(user_id) or await db.is_banned(user_id):

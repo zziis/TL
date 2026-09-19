@@ -14,6 +14,7 @@ class Database:
         self.muted_users: Set[str] = set()
         self.active_users: Dict[str, dict] = {}  # session_id -> {id, name, username, ip, joined_at, last_seen, in_call}
         self.messages: List[dict] = []
+        self.known_users: Dict[str, dict] = {}
         self.active_calls: Dict[str, dict] = {}  # call_id -> {user_id, user_name, type: 'voice'|'video', status: 'pending'|'accepted'|'rejected'|'ended', started_at}
         
         self.load()
@@ -26,6 +27,7 @@ class Database:
                     self.banned_users = set(data.get("banned_users", []))
                     self.muted_users = set(data.get("muted_users", []))
                     self.messages = data.get("messages", [])[-100:]  # Keep last 100
+                    self.known_users = data.get("known_users", {})
         except Exception as e:
             print(f"[DB] Error loading data: {e}")
 
@@ -34,7 +36,8 @@ class Database:
             data = {
                 "banned_users": list(self.banned_users),
                 "muted_users": list(self.muted_users),
-                "messages": self.messages[-100:]
+                "messages": self.messages[-100:],
+                "known_users": self.known_users
             }
             with open(self.data_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -73,17 +76,51 @@ class Database:
 
     async def add_active_user(self, session_id: str, user_data: dict):
         async with self._lock:
-            self.active_users[session_id] = {
+            now_full = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            now_time = datetime.now().strftime("%H:%M:%S")
+            previous = self.known_users.get(str(session_id), {})
+            record = {
+                **previous,
                 **user_data,
-                "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "last_seen": datetime.now().strftime("%H:%M:%S"),
-                "in_call": False
+                "id": str(session_id),
+                "joined_at": previous.get("joined_at", now_full),
+                "last_seen": now_time,
+                "online": True,
+                "in_call": previous.get("in_call", False)
             }
+            self.active_users[str(session_id)] = record.copy()
+            self.known_users[str(session_id)] = record.copy()
+            self.save()
 
     async def remove_active_user(self, session_id: str):
         async with self._lock:
-            if session_id in self.active_users:
-                del self.active_users[session_id]
+            sid = str(session_id)
+            if sid in self.active_users:
+                del self.active_users[sid]
+            if sid in self.known_users:
+                self.known_users[sid]["online"] = False
+                self.known_users[sid]["last_seen"] = datetime.now().strftime("%H:%M:%S")
+                self.save()
+
+    async def touch_user(self, user_id: str, name: str):
+        async with self._lock:
+            uid = str(user_id)
+            rec = self.known_users.get(uid, {"id": uid, "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+            rec.update({"id": uid, "name": name, "last_seen": datetime.now().strftime("%H:%M:%S"), "online": uid in self.active_users})
+            self.known_users[uid] = rec
+            self.save()
+
+    async def get_users_for_admin(self) -> List[dict]:
+        users = []
+        for uid, rec in self.known_users.items():
+            item = dict(rec)
+            item["online"] = uid in self.active_users
+            if uid in self.active_users:
+                item.update(self.active_users[uid])
+                item["online"] = True
+            users.append(item)
+        users.sort(key=lambda x: x.get("last_seen", ""), reverse=True)
+        return users
 
     async def update_user_call_status(self, session_id: str, in_call: bool):
         async with self._lock:
