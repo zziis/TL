@@ -33,12 +33,12 @@ def get_start_keyboard(admin: bool = False):
     if admin and is_https:
         admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
         buttons.append([
-            InlineKeyboardButton(text="👥 فتح قائمة المستخدمين والمحادثات", url=admin_url)
+            InlineKeyboardButton(text="👥 فتح قائمة المستخدمين ", url=admin_url)
         ])
     elif is_https:
         buttons.append([
             InlineKeyboardButton(
-                text="⚡ دخول منصة ZLZ (Mini App)",
+                text="⚡ دخول منصة  ",
                 web_app=WebAppInfo(url=WEBAPP_URL)
             )
         ])
@@ -48,7 +48,7 @@ def get_start_keyboard(admin: bool = False):
         ])
 
     buttons.append([
-        InlineKeyboardButton(text="📡 حالة السيرفر: متصل ✅", callback_data="server_status")
+        InlineKeyboardButton(text="📡 السيرفر: متصل ✅", callback_data="server_status")
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -73,10 +73,9 @@ if dp:
             )
         else:
             caption = (
-                "✨ <b>مرحباً بك في ZLZ | زلزال</b> ✨\n\n"
+                "✨ <b>مرحباً بك في بوت | زلزال</b> ✨\n\n"
                 "⚡ <b>منطقة التواصل المباشر</b>\n"
-                "💬 رسالتك تصل إلى المطور مباشرة\n"
-                "🎙️ بصمات صوتية • 📷 صور وملفات\n"
+                "💬 رسالتك تصل مباشرة\n"
                 "📞 اتصال صوتي أو مرئي بعد الموافقة\n\n"
                 "💠 <b>ZLZ — حضور مختلف</b> 💠"
             )
@@ -98,7 +97,7 @@ if dp:
 
     @dp.callback_query(F.data == "server_status")
     async def callback_status(call: types.CallbackQuery):
-        await call.answer("⚡ منصة شبح نشطة والاتصال مشفر وجاهز!", show_alert=True)
+        await call.answer("⚡ منصة زلزال نشطة والاتصال مشفر وجاهز!", show_alert=True)
 
 
 # Direct Telegram relay: user <-> developer
@@ -130,7 +129,7 @@ if dp:
             _admin_message_to_user[copied.message_id] = message.from_user.id
             if uid not in _activated_users:
                 _activated_users.add(uid)
-                await message.answer("✓ تم فتح اتصالك المباشر مع المطور، يمكنك الآن الإرسال والاستلام مباشرة.")
+                await message.answer("✓ تم فتح اتصالك المباشر مع زلزال، يمكنك الآن الإرسال والاستلام مباشرة.")
         except Exception as e:
             logger.error(f"User relay failed: {e}")
 
@@ -140,7 +139,7 @@ async def notify_admin_new_visitor(user: types.User):
         return
     try:
         text = (
-            f"🚨 <b>زائر جديد دخل بوت شبح!</b>\n\n"
+            f"🚨 <b>زائر جديد دخل بوت زلزال!</b>\n\n"
             f"👤 <b>الاسم:</b> {user.full_name}\n"
             f"🆔 <b>الآيدي:</b> <code>{user.id}</code>\n"
             f"🔗 <b>اليوزر:</b> @{user.username if user.username else 'بدون'}\n"
@@ -205,7 +204,7 @@ async def notify_admin_call_request(user_name: str, user_id: str, call_type: str
     try:
         icon = "🎙️ مايك (صوت)" if call_type == "voice" else "📷 كاميرا وفيديو"
         text = (
-            f"📞 <b>طلب اتصال جديد في منصة شبح!</b>\n\n"
+            f"📞 <b>طلب اتصال جديد في منصة زلزال!</b>\n\n"
             f"👤 <b>المستخدم:</b> {user_name} (<code>{user_id}</code>)\n"
             f"📡 <b>النوع:</b> {icon}\n"
             f"🆔 <b>رقم المكالمة:</b> <code>{call_id}</code>\n\n"
@@ -213,7 +212,7 @@ async def notify_admin_call_request(user_name: str, user_id: str, call_type: str
         )
         admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⚡ فتح لوحة تحكم شبح", url=admin_url)]
+            [InlineKeyboardButton(text="⚡ فتح لوحة تحكم زلزال", url=admin_url)]
         ])
         await bot.send_message(
             chat_id=DEVELOPER_ID,
