@@ -8,7 +8,25 @@ load_dotenv(BASE_DIR / ".env")
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
 DEVELOPER_ID = os.getenv("DEVELOPER_ID", "").strip()
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "shabah_admin_secret").strip()
-WEBAPP_URL = os.getenv("WEBAPP_URL", "http://localhost:8000").strip().rstrip("/")
+def _resolve_webapp_url():
+    # Prefer an explicitly configured public HTTPS URL.
+    explicit = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
+    railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip().strip("/")
+    render_url = os.getenv("RENDER_EXTERNAL_URL", "").strip().rstrip("/")
+
+    # On Railway, never allow an old localhost WEBAPP_URL to override the public domain.
+    if railway_domain:
+        return f"https://{railway_domain}"
+    if render_url:
+        return render_url if render_url.startswith(("https://", "http://")) else f"https://{render_url}"
+    if explicit:
+        if explicit.startswith(("https://", "http://")):
+            return explicit
+        return f"https://{explicit}"
+    # Local development only. Telegram buttons will not expose this URL.
+    return f"http://localhost:{os.getenv('PORT', '8000')}"
+
+WEBAPP_URL = _resolve_webapp_url()
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 8000))
 
