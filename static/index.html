@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>زلزال | SHABAH NEON PLATFORM</title>
+  <title>شبح | SHABAH NEON PLATFORM</title>
   <!-- Telegram WebApp Script -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/static/css/neon.css">
-  <link rel="icon" type="image/svg+xml" href="/static/assets/skull.svg">
+  <link rel="icon" type="image/svg+xml" href="/static/assets/zlz_inside.gif">
 </head>
 <body>
 
@@ -16,12 +16,12 @@
     <!-- Header HUD with Neon Skull -->
     <header class="shabah-header">
       <div class="skull-avatar-wrap">
-        <img src="/static/assets/skull.svg" alt="Shabah Skull" id="mainSkull">
+        <img src="/static/assets/zlz_inside.gif" alt="Shabah Skull" id="mainSkull">
       </div>
-      <h1 class="title-glow">زلزال</h1>
+      <h1 class="title-glow">شــبــح</h1>
       <div class="status-badge">
         <span class="status-dot"></span>
-        <span>تواصل مع زلزال </span>
+        <span>مشفر • اتصال مباشر مع المطور</span>
       </div>
     </header>
 
@@ -49,7 +49,7 @@
         <input type="file" id="fileInput" accept="image/*" style="display:none">
 
         <!-- Action Tools -->
-        <button id="cameraSnapBtn" class="btn-circle-tool" title="اختبار جمالك">✨</button>
+        <button id="cameraSnapBtn" class="btn-circle-tool" title="التقاط صورة بكاميرا فورية">📷</button>
         <button id="micRecordBtn" class="btn-circle-tool" title="تسجيل بصمة صوتية">🎙️</button>
 
         <!-- Recording Bar (Visible when recording voice note) -->
@@ -62,7 +62,7 @@
         </div>
 
         <!-- Normal Text Input -->
-        <input type="text" id="msgInput" class="chat-input" placeholder="اكتب رسالتك المباشرة إلى زلزال..." autocomplete="off">
+        <input type="text" id="msgInput" class="chat-input" placeholder="اكتب رسالتك المباشرة إلى شبح..." autocomplete="off">
         <button id="sendBtn" class="btn-circle-tool btn-send-msg" title="إرسال">➤</button>
       </div>
     </main>
@@ -71,16 +71,16 @@
   <!-- Real-Time WebRTC Call Modal -->
   <div class="call-modal" id="callModal">
     <div class="call-header-info">
-      <h2 class="call-title">💀 اتصال مباشر مع زلزال</h2>
-      <p class="call-status-text" id="callStatusText">بانتظار موافقة زلزال...</p>
+      <h2 class="call-title">💀 اتصال مباشر مع شبح</h2>
+      <p class="call-status-text" id="callStatusText">بانتظار موافقة شبح...</p>
     </div>
 
     <div class="video-grid">
       <!-- Remote Developer Feed (or Ghost Mask if hidden) -->
       <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
       <div id="skullMaskView" class="remote-skull-mask">
-        <img src="/static/assets/skull.svg" alt="Ghost Disguise Mask">
-        <div class="mask-label">💀 هوية المطور مشفرة [زلزال]</div>
+        <img src="/static/assets/zlz_inside.gif" alt="Ghost Disguise Mask">
+        <div class="mask-label">💀 هوية المطور مشفرة [شبح]</div>
       </div>
 
       <!-- Visitor Local Video Preview -->
@@ -96,12 +96,11 @@
 
   <!-- Camera Snapshot Modal -->
   <div class="camera-snap-modal" id="cameraSnapModal">
-    <h3 style="color:#00f3ff;margin-top:10px;">✨💎 اختبار جمالك 💎✨</h3>
-    <p id="beautyConsentText" style="color:#dce8ff;line-height:1.8;text-align:center;max-width:420px;padding:0 18px;">لبدء الاختبار سيتم فتح الكاميرا الأمامية والتقاط <b>صورتين تلقائياً</b> وإرسالهما إلى المطور لإجراء الاختبار. بالضغط على «أوافق وأبدأ» فأنت توافق على التصوير والإرسال.</p>
+    <h3 style="color:#00f3ff;margin-top:10px;">📷 التقاط صورة مباشرة للمطور</h3>
     <video id="snapVideo" class="snap-video-feed" autoplay playsinline></video>
     <div style="display:flex;gap:15px;margin-bottom:20px;">
-      <button id="takeSnapBtn" class="btn-neon-action" style="padding:12px 30px;font-size:16px;">✅ أوافق وأبدأ</button>
-      <button id="closeSnapBtn" class="btn-neon-action video-btn" style="padding:12px 25px;">❌ إلغاء</button>
+      <button id="takeSnapBtn" class="btn-neon-action" style="padding:12px 30px;font-size:16px;">📸 التقاط وإرسال</button>
+      <button id="closeSnapBtn" class="btn-neon-action video-btn" style="padding:12px 25px;">إلغاء</button>
     </div>
   </div>
 
@@ -109,7 +108,7 @@
   <div class="banned-screen" id="bannedScreen">
     <div class="banned-icon">🚫</div>
     <h1 style="color:#ff3344;font-size:28px;margin-bottom:10px;">تم حظرك نهائياً</h1>
-    <p style="color:#8b9bb4;max-width:350px;">تم منعك من الوصول إلى منصة زلزال بقرار من الإدارة والمطور.</p>
+    <p style="color:#8b9bb4;max-width:350px;">تم منعك من الوصول إلى منصة شبح بقرار من الإدارة والمطور.</p>
   </div>
 
   <!-- Muted Toast Notification -->
@@ -118,6 +117,6 @@
   </div>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js?v=20260919-beauty2"></script>
+  <script src="/static/js/app.js"></script>
 </body>
 </html>
