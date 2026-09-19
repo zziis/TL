@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import (
-    BASE_DIR, UPLOAD_DIR, STATIC_DIR, 
+    BASE_DIR, DATA_DIR, UPLOAD_DIR, STATIC_DIR, 
     ADMIN_SECRET_KEY, BOT_TOKEN, DEVELOPER_ID
 )
 from database import db
@@ -353,7 +353,17 @@ async def websocket_endpoint(
 # APK Store
 # ----------------------------------------------------
 import json
-APK_STORE_FILE = BASE_DIR / "apk_store.json"
+APK_STORE_FILE = DATA_DIR / "apk_store.json"
+LEGACY_APK_STORE_FILE = BASE_DIR / "apk_store.json"
+
+# One-time migration from the old container-local metadata file.
+# APK binaries/icons already live under persistent UPLOAD_DIR when /data is mounted.
+if not APK_STORE_FILE.exists() and LEGACY_APK_STORE_FILE.exists():
+    try:
+        APK_STORE_FILE.write_bytes(LEGACY_APK_STORE_FILE.read_bytes())
+        print(f"[APK] Migrated store metadata to persistent storage: {APK_STORE_FILE}")
+    except Exception as e:
+        print(f"[APK] Metadata migration failed: {e}")
 APK_UPLOAD_DIR = UPLOAD_DIR / "apk"
 APK_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
