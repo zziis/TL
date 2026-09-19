@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import Optional
+from pathlib import Path
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, FSInputFile
@@ -65,19 +66,19 @@ if dp:
         admin = is_admin(user.id)
         if admin:
             caption = (
-                "⚡ <b>ZLZ • زلزال</b> ⚡\n\n"
-                "👑 أهلاً بك في لوحة المطور.\n"
-                "💬 المستخدمون والمحادثات الخاصة بانتظارك.\n"
-                "🔐 دخول إداري مباشر وآمن."
+                "⚡ <b>لوحة ZLZ | زلزال</b> ⚡\n\n"
+                "👑 أهلاً بالمطور.\n"
+                "💬 الرسائل والاتصالات الخاصة تظهر لك مباشرة.\n"
+                "🔐 دخول إداري مشفّر وآمن."
             )
         else:
             caption = (
-                "⚡ <b>مرحباً بك في عالم زلزال | ZLZ</b> ⚡\n\n"
-                "💬 تواصل مباشر وخاص مع المطور\n"
-                "🎙️ رسائل وبصمات صوتية\n"
-                "📷 صور وملفات\n"
-                "📞 اتصال صوتي أو مرئي عند الموافقة\n\n"
-                "✨ <b>مكان واحد .. يجمعنا دائماً</b>"
+                "✨ <b>مرحباً بك في ZLZ | زلزال</b> ✨\n\n"
+                "⚡ <b>منطقة التواصل المباشر</b>\n"
+                "💬 رسالتك تصل إلى المطور مباشرة\n"
+                "🎙️ بصمات صوتية • 📷 صور وملفات\n"
+                "📞 اتصال صوتي أو مرئي بعد الموافقة\n\n"
+                "💠 <b>ZLZ — حضور مختلف</b> 💠"
             )
 
         animation_path = Path(__file__).resolve().parent / "static" / "assets" / "zlz_welcome_neon.gif"
