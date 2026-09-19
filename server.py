@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import (
-    BASE_DIR, UPLOAD_DIR, STATIC_DIR, 
+    BASE_DIR, DATA_DIR, UPLOAD_DIR, STATIC_DIR, 
     ADMIN_SECRET_KEY, BOT_TOKEN, DEVELOPER_ID
 )
 from database import db
@@ -353,7 +353,7 @@ async def websocket_endpoint(
 # APK Store
 # ----------------------------------------------------
 import json
-APK_STORE_FILE = BASE_DIR / "apk_store.json"
+APK_STORE_FILE = DATA_DIR / "apk_store.json"
 APK_UPLOAD_DIR = UPLOAD_DIR / "apk"
 APK_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 

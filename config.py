@@ -23,8 +23,19 @@ else:
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", 8000))
 
-UPLOAD_DIR = BASE_DIR / "uploads"
-UPLOAD_DIR.mkdir(exist_ok=True)
+# Persistent runtime data. On Railway mount a Volume at /data (recommended).
+# You can override it with DATA_DIR. Everything that must survive deploys lives here.
+_data_env = os.getenv("DATA_DIR", "").strip()
+if _data_env:
+    DATA_DIR = Path(_data_env).expanduser().resolve()
+elif Path("/data").is_dir():
+    DATA_DIR = Path("/data") / "tl_platform"
+else:
+    DATA_DIR = BASE_DIR / "runtime_data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+UPLOAD_DIR = DATA_DIR / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 STATIC_DIR = BASE_DIR / "static"
 
 # Google STUN servers for WebRTC

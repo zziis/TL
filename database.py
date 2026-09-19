@@ -3,10 +3,11 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Set, Optional
+from config import DATA_DIR
 
 class Database:
     def __init__(self, data_file: Optional[Path] = None):
-        self.data_file = data_file or Path(__file__).resolve().parent / "data_store.json"
+        self.data_file = data_file or DATA_DIR / "data_store.json"
         self._lock = asyncio.Lock()
         
         # State caches
