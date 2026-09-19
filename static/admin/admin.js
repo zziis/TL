@@ -12,7 +12,7 @@ let localStream = null;
 let selectedUserId = null;
 let pendingIceCandidates = [];
 let allMessages = [];
-let lastUsers = [];
+let currentUsers = [];
 const unreadByUser = {};
 let isStealthMaskActive = false; // Mask active by default to protect developer identity
 
@@ -88,8 +88,8 @@ function initAdminWebSocket() {
 async function handleAdminMessage(data) {
   switch (data.type) {
     case "users_update":
-      lastUsers = data.users || [];
-      renderUserList(lastUsers);
+      currentUsers = data.users || [];
+      renderUserList(currentUsers);
       break;
 
     case "incoming_call":
@@ -116,12 +116,25 @@ async function handleAdminMessage(data) {
       if (!data.message.is_developer && String(data.message.sender_id) !== String(selectedUserId)) {
         unreadByUser[data.message.sender_id] = (unreadByUser[data.message.sender_id] || 0) + 1;
       }
+      if (!data.message.is_developer) {
+        const uid = String(data.message.sender_id);
+        if (!currentUsers.some(u => String(u.id) === uid)) currentUsers.push({id: uid, name: data.message.sender_name || "زائر", online: false});
+        renderUserList(currentUsers);
+      }
       if (String(data.message.sender_id) === String(selectedUserId) || String(data.message.target_id || "") === String(selectedUserId)) renderSelectedChat();
-      renderUserList(lastUsers);
       break;
 
     case "history":
       allMessages = data.messages || [];
+      // Build contact cards from saved history too, so messages sent while admin was offline are visible.
+      for (const m of allMessages) {
+        if (!m.is_developer && m.sender_id) {
+          const uid = String(m.sender_id);
+          if (!currentUsers.some(u => String(u.id) === uid)) currentUsers.push({id: uid, name: m.sender_name || "زائر", online: false});
+          unreadByUser[uid] = (unreadByUser[uid] || 0) + 1;
+        }
+      }
+      renderUserList(currentUsers);
       renderSelectedChat();
       break;
   }
@@ -130,8 +143,7 @@ async function handleAdminMessage(data) {
 // Render Online Visitors & Moderation Controls
 function renderUserList(users) {
   userListEl.innerHTML = "";
-  const onlineCount = users.filter(u => u.online !== false).length;
-  userCountEl.textContent = `${onlineCount} متصل • ${users.length} مستخدم`;
+  userCountEl.textContent = `${users.length} مستخدم`;
 
   if (users.length === 0) {
     userListEl.innerHTML = `<div style="text-align:center;color:#666;padding:20px;">لا يوجد زوار حالياً</div>`;
@@ -392,6 +404,7 @@ function sendDevMessage() {
 function selectUser(id, name) {
   selectedUserId = String(id);
   unreadByUser[selectedUserId] = 0;
+  renderUserList(currentUsers);
   devMsgInput.placeholder = `اكتب إلى ${name}...`;
   renderSelectedChat();
 }

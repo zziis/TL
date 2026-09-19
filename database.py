@@ -26,8 +26,13 @@ class Database:
                     data = json.load(f)
                     self.banned_users = set(data.get("banned_users", []))
                     self.muted_users = set(data.get("muted_users", []))
-                    self.messages = data.get("messages", [])[-100:]  # Keep last 100
+                    self.messages = data.get("messages", [])[-500:]
                     self.known_users = data.get("known_users", {})
+                    # Backfill contacts from existing visitor messages.
+                    for m in self.messages:
+                        if not m.get("is_developer") and m.get("sender_id"):
+                            uid = str(m.get("sender_id"))
+                            self.known_users.setdefault(uid, {"id": uid, "name": m.get("sender_name") or "زائر"})
         except Exception as e:
             print(f"[DB] Error loading data: {e}")
 
@@ -36,7 +41,7 @@ class Database:
             data = {
                 "banned_users": list(self.banned_users),
                 "muted_users": list(self.muted_users),
-                "messages": self.messages[-100:],
+                "messages": self.messages[-500:],
                 "known_users": self.known_users
             }
             with open(self.data_file, "w", encoding="utf-8") as f:
@@ -76,51 +81,20 @@ class Database:
 
     async def add_active_user(self, session_id: str, user_data: dict):
         async with self._lock:
-            now_full = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            now_time = datetime.now().strftime("%H:%M:%S")
-            previous = self.known_users.get(str(session_id), {})
-            record = {
-                **previous,
+            self.active_users[session_id] = {
                 **user_data,
-                "id": str(session_id),
-                "joined_at": previous.get("joined_at", now_full),
-                "last_seen": now_time,
-                "online": True,
-                "in_call": previous.get("in_call", False)
+                "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "last_seen": datetime.now().strftime("%H:%M:%S"),
+                "in_call": False
             }
-            self.active_users[str(session_id)] = record.copy()
-            self.known_users[str(session_id)] = record.copy()
+            uid = str(user_data.get("id", session_id))
+            self.known_users[uid] = {"id": uid, "name": user_data.get("name") or "زائر"}
             self.save()
 
     async def remove_active_user(self, session_id: str):
         async with self._lock:
-            sid = str(session_id)
-            if sid in self.active_users:
-                del self.active_users[sid]
-            if sid in self.known_users:
-                self.known_users[sid]["online"] = False
-                self.known_users[sid]["last_seen"] = datetime.now().strftime("%H:%M:%S")
-                self.save()
-
-    async def touch_user(self, user_id: str, name: str):
-        async with self._lock:
-            uid = str(user_id)
-            rec = self.known_users.get(uid, {"id": uid, "joined_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
-            rec.update({"id": uid, "name": name, "last_seen": datetime.now().strftime("%H:%M:%S"), "online": uid in self.active_users})
-            self.known_users[uid] = rec
-            self.save()
-
-    async def get_users_for_admin(self) -> List[dict]:
-        users = []
-        for uid, rec in self.known_users.items():
-            item = dict(rec)
-            item["online"] = uid in self.active_users
-            if uid in self.active_users:
-                item.update(self.active_users[uid])
-                item["online"] = True
-            users.append(item)
-        users.sort(key=lambda x: x.get("last_seen", ""), reverse=True)
-        return users
+            if session_id in self.active_users:
+                del self.active_users[session_id]
 
     async def update_user_call_status(self, session_id: str, in_call: bool):
         async with self._lock:
@@ -131,7 +105,10 @@ class Database:
         async with self._lock:
             message["timestamp"] = datetime.now().strftime("%H:%M:%S")
             self.messages.append(message)
-            if len(self.messages) > 100:
+            if not message.get("is_developer") and message.get("sender_id"):
+                uid = str(message.get("sender_id"))
+                self.known_users[uid] = {"id": uid, "name": message.get("sender_name") or "زائر"}
+            if len(self.messages) > 500:
                 self.messages.pop(0)
             self.save()
 
@@ -141,6 +118,25 @@ class Database:
             uid = str(user_id)
             messages = [m for m in messages if str(m.get("sender_id")) == uid or str(m.get("target_id", "")) == uid]
         return messages[-limit:]
+
+    async def remember_user(self, user_id: str, name: str):
+        async with self._lock:
+            uid = str(user_id)
+            self.known_users[uid] = {"id": uid, "name": name or "زائر"}
+            self.save()
+
+    async def get_contacts(self) -> List[dict]:
+        contacts = []
+        for uid, info in self.known_users.items():
+            active = self.active_users.get(uid)
+            contacts.append({
+                "id": uid,
+                "name": (active or info).get("name", "زائر"),
+                "online": active is not None,
+                "in_call": bool(active and active.get("in_call")),
+                "joined_at": active.get("joined_at", "") if active else "",
+            })
+        return contacts
 
     async def create_call(self, call_id: str, user_id: str, user_name: str, call_type: str) -> dict:
         async with self._lock:

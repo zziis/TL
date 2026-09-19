@@ -38,7 +38,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.get("/", response_class=HTMLResponse)
 async def get_index():
     index_path = STATIC_DIR / "index.html"
-    return FileResponse(index_path)
+    return FileResponse(index_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
 
 
 @app.get("/ghost-admin", response_class=HTMLResponse)
@@ -59,7 +59,7 @@ async def get_admin(secret: Optional[str] = Query(None)):
             status_code=401
         )
     admin_path = STATIC_DIR / "admin" / "index.html"
-    return FileResponse(admin_path)
+    return FileResponse(admin_path, headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"})
 
 
 @app.post("/api/upload-voice")
@@ -137,7 +137,7 @@ class ConnectionManager:
 
     async def broadcast_users_to_dev(self):
         if self.dev_socket:
-            users_data = await db.get_users_for_admin()
+            users_data = await db.get_contacts()
             await self.send_to_dev({
                 "type": "users_update",
                 "users": users_data
@@ -292,9 +292,8 @@ async def websocket_endpoint(
                     "content": data.get("content", ""),
                     "file_url": data.get("file_url")
                 }
-                await db.touch_user(user_id, name)
                 await db.add_message(msg_obj)
-                # Broadcast to sender & developer
+                # Echo to sender, deliver privately to developer, then refresh developer contacts.
                 await websocket.send_json({"type": "chat", "message": msg_obj})
                 await manager.send_to_dev({"type": "chat", "message": msg_obj})
                 await manager.broadcast_users_to_dev()
