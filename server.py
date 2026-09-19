@@ -170,19 +170,21 @@ async def websocket_endpoint(
                 action = data.get("action")
 
                 if action == "send_message":
+                    target_id = str(data.get("target_id") or "")
+                    if not target_id:
+                        continue
                     msg_obj = {
                         "sender_id": "shabah_dev",
                         "sender_name": "شبح",
                         "is_developer": True,
+                        "target_id": target_id,
                         "msg_type": data.get("msg_type", "text"),
                         "content": data.get("content", ""),
                         "file_url": data.get("file_url")
                     }
                     await db.add_message(msg_obj)
-                    # Broadcast to dev and all visitors
                     await manager.send_to_dev({"type": "chat", "message": msg_obj})
-                    for vid in list(manager.active_visitors.keys()):
-                        await manager.send_to_user(vid, {"type": "chat", "message": msg_obj})
+                    await manager.send_to_user(target_id, {"type": "chat", "message": msg_obj})
 
                 elif action == "call_accept":
                     target_id = data.get("target_id")
@@ -264,7 +266,7 @@ async def websocket_endpoint(
     await manager.connect_visitor(user_id, websocket, name)
     
     # Send history
-    history = await db.get_recent_messages()
+    history = await db.get_recent_messages(user_id=user_id)
     await websocket.send_json({"type": "history", "messages": history})
 
     # If muted, send notification

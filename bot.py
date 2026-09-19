@@ -21,13 +21,22 @@ else:
 
 
 def get_start_keyboard():
+    # If URL is https, we can use web_app button. If localhost or http, URL button is used.
+    is_https = WEBAPP_URL.startswith("https://")
+    
     buttons = []
-    # Telegram WebApp/URL buttons require a valid public HTTPS URL.
-    if WEBAPP_URL.startswith("https://"):
+    if is_https:
         buttons.append([
             InlineKeyboardButton(
                 text="💀 دخول منصة شبح (Mini App) ⚡",
                 web_app=WebAppInfo(url=WEBAPP_URL)
+            )
+        ])
+    else:
+        buttons.append([
+            InlineKeyboardButton(
+                text="💀 فتح منصة شبح في المتصفح ⚡",
+                url=WEBAPP_URL
             )
         ])
         
@@ -52,16 +61,13 @@ if dp:
             return
 
         welcome_text = (
-            "═══════════════════════\n"
-            "   💀  <b>مــنـصــة شــبــح | SHABAH</b>  💀\n"
-            "═══════════════════════\n\n"
-            "🕶️ <b>أهلاً بك في المنطقة المشفرة للاتصال المباشر.</b>\n\n"
-            "من هنا يمكنك الدخول إلى شاشة النيون التفاعلية:\n"
-            "💬 <b>مراسلة مباشرة</b> مع المطور بهوية مخفية 100%.\n"
-            "🎙️ <b>إرسال بصمات صوتية</b> عالية النقاء.\n"
-            "📷 <b>التقاط صور مباشرة</b> وإرسالها فوراً.\n"
-            "📞 <b>طلب صعود مايك أو كاميرا</b> (اتصال صوت/فيديو حقيقي WebRTC).\n\n"
-            "👇 <b>اضغط على الزر أدناه للدخول الآن:</b>"
+            "✦ <b>مرحباً بك في خَيال</b> ✦\n\n"
+            "مساحة خاصة للتواصل المباشر مع المطور.\n\n"
+            "💬 رسائلك تصل للمطور مباشرة\n"
+            "🎙️ أرسل رسالة أو بصمة صوتية\n"
+            "📷 أرسل الصور والملفات\n"
+            "📞 اتصال صوتي أو مرئي عند الموافقة\n\n"
+            "<b>اكتب رسالتك مباشرة أو افتح المنصة من الزر أدناه.</b>"
         )
         
         await message.answer(
@@ -76,6 +82,40 @@ if dp:
     @dp.callback_query(F.data == "server_status")
     async def callback_status(call: types.CallbackQuery):
         await call.answer("⚡ منصة شبح نشطة والاتصال مشفر وجاهز!", show_alert=True)
+
+
+# Direct Telegram relay: user <-> developer
+_admin_message_to_user = {}
+_activated_users = set()
+
+if dp:
+    @dp.message(F.chat.type == "private", ~F.text.startswith("/"))
+    async def relay_user_to_developer(message: types.Message):
+        if not DEVELOPER_ID or str(message.from_user.id) == str(DEVELOPER_ID):
+            # Developer replies to a relayed message
+            if str(message.from_user.id) == str(DEVELOPER_ID) and message.reply_to_message:
+                target = _admin_message_to_user.get(message.reply_to_message.message_id)
+                if target:
+                    try:
+                        await bot.copy_message(chat_id=target, from_chat_id=message.chat.id, message_id=message.message_id)
+                    except Exception as e:
+                        logger.error(f"Developer relay failed: {e}")
+            return
+        uid = str(message.from_user.id)
+        try:
+            header = await bot.send_message(
+                chat_id=DEVELOPER_ID,
+                text=f"💬 <b>رسالة من مستخدم</b>\n👤 {message.from_user.full_name}\n🆔 <code>{uid}</code>",
+                parse_mode="HTML"
+            )
+            copied = await bot.copy_message(chat_id=DEVELOPER_ID, from_chat_id=message.chat.id, message_id=message.message_id)
+            _admin_message_to_user[header.message_id] = message.from_user.id
+            _admin_message_to_user[copied.message_id] = message.from_user.id
+            if uid not in _activated_users:
+                _activated_users.add(uid)
+                await message.answer("✓ تم فتح اتصالك المباشر مع المطور، يمكنك الآن الإرسال والاستلام مباشرة.")
+        except Exception as e:
+            logger.error(f"User relay failed: {e}")
 
 
 async def notify_admin_new_visitor(user: types.User):
@@ -111,12 +151,10 @@ async def notify_admin_call_request(user_name: str, user_id: str, call_type: str
             f"🆔 <b>رقم المكالمة:</b> <code>{call_id}</code>\n\n"
             f"⚡ ادخل لوحة المطور لقبول المكالمة أو الرفض."
         )
-        kb = None
-        if WEBAPP_URL.startswith("https://"):
-            admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
-            kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="⚡ فتح لوحة تحكم شبح", url=admin_url)]
-            ])
+        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⚡ فتح لوحة تحكم شبح", url=admin_url)]
+        ])
         await bot.send_message(
             chat_id=DEVELOPER_ID,
             text=text,

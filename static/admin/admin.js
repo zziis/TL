@@ -9,7 +9,11 @@ let socket = null;
 let currentCall = null;
 let peerConnection = null;
 let localStream = null;
-let isStealthMaskActive = true; // Mask active by default to protect developer identity
+let selectedUserId = null;
+let pendingIceCandidates = [];
+let allMessages = [];
+const unreadByUser = {};
+let isStealthMaskActive = false; // Mask active by default to protect developer identity
 
 const iceServers = {
   iceServers: [
@@ -95,8 +99,9 @@ async function handleAdminMessage(data) {
       break;
 
     case "webrtc_ice":
-      if (peerConnection && data.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      if (data.candidate) {
+        if (peerConnection && peerConnection.remoteDescription) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        else pendingIceCandidates.push(data.candidate);
       }
       break;
 
@@ -105,13 +110,16 @@ async function handleAdminMessage(data) {
       break;
 
     case "chat":
-      renderAdminChatMessage(data.message);
+      allMessages.push(data.message);
+      if (!data.message.is_developer && String(data.message.sender_id) !== String(selectedUserId)) {
+        unreadByUser[data.message.sender_id] = (unreadByUser[data.message.sender_id] || 0) + 1;
+      }
+      if (String(data.message.sender_id) === String(selectedUserId) || String(data.message.target_id || "") === String(selectedUserId)) renderSelectedChat();
       break;
 
     case "history":
-      adminChatFeed.innerHTML = "";
-      data.messages.forEach(msg => renderAdminChatMessage(msg));
-      adminChatFeed.scrollTop = adminChatFeed.scrollHeight;
+      allMessages = data.messages || [];
+      renderSelectedChat();
       break;
   }
 }
@@ -131,19 +139,20 @@ function renderUserList(users) {
 
     const card = document.createElement("div");
     card.className = "user-card";
+    card.onclick = () => selectUser(user.id, user.name || "زائر");
 
     card.innerHTML = `
       <div class="user-meta">
         <span class="user-name-title">${escapeHtml(user.name || "زائر")}</span>
-        <span class="user-badge">${user.in_call ? "📞 في مكالمة" : "متصل"}</span>
+        <span class="user-badge">${unreadByUser[user.id] ? `🔴 ${unreadByUser[user.id]} جديد` : (user.in_call ? "📞 في مكالمة" : "متصل")}</span>
       </div>
       <div style="font-size:11px;color:#889;margin-bottom:6px;">
         ID: <code>${user.id}</code> | انضم: ${user.joined_at?.split(" ")[1] || ""}
       </div>
       <div class="user-mod-actions">
-        <button class="btn-mod mute" onclick="muteUser('${user.id}')">كتم 🔇</button>
-        <button class="btn-mod kick" onclick="kickUser('${user.id}')">طرد ⚡</button>
-        <button class="btn-mod ban" onclick="banUser('${user.id}')">حظر 🚫</button>
+        <button class="btn-mod mute" onclick="event.stopPropagation();muteUser('${user.id}')">كتم 🔇</button>
+        <button class="btn-mod kick" onclick="event.stopPropagation();kickUser('${user.id}')">طرد ⚡</button>
+        <button class="btn-mod ban" onclick="event.stopPropagation();banUser('${user.id}')">حظر 🚫</button>
       </div>
     `;
 
@@ -221,7 +230,7 @@ async function handleCallerOffer(data) {
     // Get developer microphone
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: true,
-      video: !isStealthMaskActive // Only open dev camera if stealth mask is off
+      video: currentCall?.call_type === "video"
     });
 
     localStream.getTracks().forEach(track => {
@@ -244,6 +253,7 @@ async function handleCallerOffer(data) {
     };
 
     await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    for (const c of pendingIceCandidates.splice(0)) await peerConnection.addIceCandidate(new RTCIceCandidate(c));
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
@@ -364,13 +374,33 @@ function sendDevMessage() {
   const text = devMsgInput.value.trim();
   if (!text || !socket) return;
 
+  if (!selectedUserId) { alert("اختر مستخدماً من القائمة أولاً"); return; }
   socket.send(JSON.stringify({
     action: "send_message",
+    target_id: selectedUserId,
     msg_type: "text",
     content: text
   }));
 
   devMsgInput.value = "";
+}
+
+function selectUser(id, name) {
+  selectedUserId = String(id);
+  unreadByUser[selectedUserId] = 0;
+  devMsgInput.placeholder = `اكتب إلى ${name}...`;
+  renderSelectedChat();
+}
+
+function renderSelectedChat() {
+  adminChatFeed.innerHTML = "";
+  if (!selectedUserId) {
+    adminChatFeed.innerHTML = '<div style="text-align:center;color:#777;padding:30px">اختر مستخدماً من القائمة لفتح المحادثة الخاصة</div>';
+    return;
+  }
+  allMessages.filter(m => String(m.sender_id) === selectedUserId || String(m.target_id || "") === selectedUserId)
+    .forEach(m => renderAdminChatMessage(m));
+  adminChatFeed.scrollTop = adminChatFeed.scrollHeight;
 }
 
 function escapeHtml(str) {

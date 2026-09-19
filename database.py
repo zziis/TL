@@ -98,8 +98,12 @@ class Database:
                 self.messages.pop(0)
             self.save()
 
-    async def get_recent_messages(self, limit: int = 50) -> List[dict]:
-        return self.messages[-limit:]
+    async def get_recent_messages(self, limit: int = 50, user_id: Optional[str] = None) -> List[dict]:
+        messages = self.messages
+        if user_id is not None:
+            uid = str(user_id)
+            messages = [m for m in messages if str(m.get("sender_id")) == uid or str(m.get("target_id", "")) == uid]
+        return messages[-limit:]
 
     async def create_call(self, call_id: str, user_id: str, user_name: str, call_type: str) -> dict:
         async with self._lock:

@@ -36,6 +36,7 @@ let peerConnection = null;
 let localStream = null;
 let isAudioMuted = false;
 let isVideoMuted = false;
+let pendingIceCandidates = [];
 
 const iceServers = {
   iceServers: [
@@ -142,12 +143,14 @@ async function handleSocketMessage(data) {
     case "webrtc_answer":
       if (peerConnection && data.sdp) {
         await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+        for (const c of pendingIceCandidates.splice(0)) await peerConnection.addIceCandidate(new RTCIceCandidate(c));
       }
       break;
 
     case "webrtc_ice":
-      if (peerConnection && data.candidate) {
-        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+      if (data.candidate) {
+        if (peerConnection && peerConnection.remoteDescription) await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+        else pendingIceCandidates.push(data.candidate);
       }
       break;
 
@@ -474,7 +477,7 @@ function requestCall(type) {
 }
 
 async function handleCallAccepted(data) {
-  callStatusText.textContent = "⚡ متصل الآن مع شبح!";
+  callStatusText.textContent = "تمت الموافقة • جاري ربط الصوت والصورة...";
   
   try {
     // Acquire local media
@@ -497,6 +500,8 @@ async function handleCallAccepted(data) {
 
     peerConnection.ontrack = (event) => {
       remoteVideo.srcObject = event.streams[0];
+      remoteVideo.play().catch(()=>{});
+      callStatusText.textContent = "🟢 متصل الآن مع المطور";
     };
 
     peerConnection.onicecandidate = (event) => {
