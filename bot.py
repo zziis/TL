@@ -3,8 +3,8 @@ import logging
 from typing import Optional
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from config import BOT_TOKEN, DEVELOPER_ID, WEBAPP_URL, ADMIN_SECRET_KEY
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, FSInputFile
+from config import BOT_TOKEN, DEVELOPER_ID, WEBAPP_URL, ADMIN_SECRET_KEY, ADMIN_IDS
 from database import db
 
 logging.basicConfig(level=logging.INFO)
@@ -20,31 +20,34 @@ else:
     logger.warning("⚠️ BOT_TOKEN is not set. Bot will run in mock/standby mode.")
 
 
-def get_start_keyboard():
-    # If URL is https, we can use web_app button. If localhost or http, URL button is used.
+def is_admin(user_id) -> bool:
+    uid = str(user_id)
+    return uid == str(DEVELOPER_ID) or uid in {str(x) for x in ADMIN_IDS}
+
+
+def get_start_keyboard(admin: bool = False):
     is_https = WEBAPP_URL.startswith("https://")
-    
     buttons = []
-    if is_https:
+
+    if admin and is_https:
+        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+        buttons.append([
+            InlineKeyboardButton(text="👥 فتح قائمة المستخدمين والمحادثات", url=admin_url)
+        ])
+    elif is_https:
         buttons.append([
             InlineKeyboardButton(
-                text="💀 دخول منصة شبح (Mini App) ⚡",
+                text="⚡ دخول منصة ZLZ (Mini App)",
                 web_app=WebAppInfo(url=WEBAPP_URL)
             )
         ])
-    else:
+    elif WEBAPP_URL:
         buttons.append([
-            InlineKeyboardButton(
-                text="💀 فتح منصة شبح في المتصفح ⚡",
-                url=WEBAPP_URL
-            )
+            InlineKeyboardButton(text="⚡ فتح منصة ZLZ", url=WEBAPP_URL)
         ])
-        
+
     buttons.append([
-        InlineKeyboardButton(
-            text="📡 حالة السيرفر: متصل ✅",
-            callback_data="server_status"
-        )
+        InlineKeyboardButton(text="📡 حالة السيرفر: متصل ✅", callback_data="server_status")
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -54,43 +57,43 @@ if dp:
     async def start_handler(message: types.Message):
         user = message.from_user
         user_id = str(user.id)
-        
-        # Check ban status
+
         if await db.is_banned(user_id):
-            await message.answer("🚫 تم حظرك من الوصول إلى منصة شبح بقرار من الإدارة.")
+            await message.answer("🚫 تم حظرك من الوصول إلى المنصة بقرار من الإدارة.")
             return
 
-        welcome_text = (
-            "✦ <b>مرحباً بك في خَيال</b> ✦\n\n"
-            "مساحة خاصة للتواصل المباشر مع المطور.\n\n"
-            "💬 رسائلك تصل للمطور مباشرة\n"
-            "🎙️ أرسل رسالة أو بصمة صوتية\n"
-            "📷 أرسل الصور والملفات\n"
-            "📞 اتصال صوتي أو مرئي عند الموافقة\n\n"
-            "<b>اكتب رسالتك مباشرة أو افتح المنصة من الزر أدناه.</b>"
-        )
-        
-        # Developer gets the real control panel; normal users get the private Mini App.
-        if DEVELOPER_ID and str(user.id) == str(DEVELOPER_ID):
-            admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
-            admin_kb = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="👥 فتح قائمة المستخدمين والمحادثات", url=admin_url)
-            ]])
-            await message.answer(
-                "💀 <b>لوحة المطور</b>\n\nاضغط الزر لعرض المستخدمين والرسائل الخاصة الواردة مباشرة.",
-                reply_markup=admin_kb,
+        admin = is_admin(user.id)
+        if admin:
+            caption = (
+                "⚡ <b>ZLZ • زلزال</b> ⚡\n\n"
+                "👑 أهلاً بك في لوحة المطور.\n"
+                "💬 المستخدمون والمحادثات الخاصة بانتظارك.\n"
+                "🔐 دخول إداري مباشر وآمن."
+            )
+        else:
+            caption = (
+                "⚡ <b>مرحباً بك في عالم زلزال | ZLZ</b> ⚡\n\n"
+                "💬 تواصل مباشر وخاص مع المطور\n"
+                "🎙️ رسائل وبصمات صوتية\n"
+                "📷 صور وملفات\n"
+                "📞 اتصال صوتي أو مرئي عند الموافقة\n\n"
+                "✨ <b>مكان واحد .. يجمعنا دائماً</b>"
+            )
+
+        animation_path = Path(__file__).resolve().parent / "static" / "assets" / "zlz_welcome_neon.gif"
+        try:
+            await message.answer_animation(
+                animation=FSInputFile(animation_path),
+                caption=caption,
+                reply_markup=get_start_keyboard(admin),
                 parse_mode="HTML"
             )
-            return
+        except Exception as e:
+            logger.error(f"Welcome animation failed: {e}")
+            await message.answer(caption, reply_markup=get_start_keyboard(admin), parse_mode="HTML")
 
-        await message.answer(
-            welcome_text,
-            reply_markup=get_start_keyboard(),
-            parse_mode="HTML"
-        )
-
-        # Notify developer about new visitor
-        await notify_admin_new_visitor(user)
+        if not admin:
+            await notify_admin_new_visitor(user)
 
     @dp.callback_query(F.data == "server_status")
     async def callback_status(call: types.CallbackQuery):
@@ -104,9 +107,9 @@ _activated_users = set()
 if dp:
     @dp.message(F.chat.type == "private", ~F.text.startswith("/"))
     async def relay_user_to_developer(message: types.Message):
-        if not DEVELOPER_ID or str(message.from_user.id) == str(DEVELOPER_ID):
-            # Developer replies to a relayed message
-            if str(message.from_user.id) == str(DEVELOPER_ID) and message.reply_to_message:
+        if not DEVELOPER_ID or is_admin(message.from_user.id):
+            # Developer/admin replies to a relayed message
+            if is_admin(message.from_user.id) and message.reply_to_message:
                 target = _admin_message_to_user.get(message.reply_to_message.message_id)
                 if target:
                     try:
@@ -149,26 +152,6 @@ async def notify_admin_new_visitor(user: types.User):
         )
     except Exception as e:
         logger.error(f"Failed to notify admin about visitor: {e}")
-
-
-async def notify_admin_web_message(user_name: str, user_id: str, content: str = "", msg_type: str = "text"):
-    """Notify developer in Telegram when a private Mini App message arrives."""
-    if not bot or not DEVELOPER_ID or not WEBAPP_URL:
-        return
-    try:
-        labels = {"text": "💬 رسالة", "voice": "🎙️ بصمة صوتية", "image": "📷 صورة"}
-        label = labels.get(msg_type, "💬 رسالة")
-        preview = (content or "").strip()[:180]
-        text = f"{label} <b>جديدة من المنصة</b>\n👤 {user_name}\n🆔 <code>{user_id}</code>"
-        if preview:
-            text += f"\n\n{preview}"
-        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
-        kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="👤 فتح محادثة المستخدم", url=admin_url)
-        ]])
-        await bot.send_message(chat_id=DEVELOPER_ID, text=text, reply_markup=kb, parse_mode="HTML")
-    except Exception as e:
-        logger.error(f"Failed to notify admin about web message: {e}")
 
 
 async def notify_admin_call_request(user_name: str, user_id: str, call_type: str, call_id: str):

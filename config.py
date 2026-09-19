@@ -6,7 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 BOT_TOKEN = os.getenv("BOT_TOKEN", "").strip()
-DEVELOPER_ID = os.getenv("DEVELOPER_ID", "").strip()
+ADMIN_IDS_RAW = os.getenv("ADMIN_IDS", "").strip()
+ADMIN_IDS = [x.strip() for x in ADMIN_IDS_RAW.replace(";", ",").split(",") if x.strip()]
+DEVELOPER_ID = os.getenv("DEVELOPER_ID", "").strip() or (ADMIN_IDS[0] if ADMIN_IDS else "")
 ADMIN_SECRET_KEY = os.getenv("ADMIN_SECRET_KEY", "shabah_admin_secret").strip()
 _configured_webapp = os.getenv("WEBAPP_URL", "").strip().rstrip("/")
 _railway_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip().strip("/")
