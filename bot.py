@@ -70,12 +70,25 @@ if dp:
             "<b>اكتب رسالتك مباشرة أو افتح المنصة من الزر أدناه.</b>"
         )
         
+        # Developer gets the real control panel; normal users get the private Mini App.
+        if DEVELOPER_ID and str(user.id) == str(DEVELOPER_ID):
+            admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+            admin_kb = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="👥 فتح قائمة المستخدمين والمحادثات", url=admin_url)
+            ]])
+            await message.answer(
+                "💀 <b>لوحة المطور</b>\n\nاضغط الزر لعرض المستخدمين والرسائل الخاصة الواردة مباشرة.",
+                reply_markup=admin_kb,
+                parse_mode="HTML"
+            )
+            return
+
         await message.answer(
             welcome_text,
             reply_markup=get_start_keyboard(),
             parse_mode="HTML"
         )
-        
+
         # Notify developer about new visitor
         await notify_admin_new_visitor(user)
 
@@ -136,6 +149,26 @@ async def notify_admin_new_visitor(user: types.User):
         )
     except Exception as e:
         logger.error(f"Failed to notify admin about visitor: {e}")
+
+
+async def notify_admin_web_message(user_name: str, user_id: str, content: str = "", msg_type: str = "text"):
+    """Notify developer in Telegram when a private Mini App message arrives."""
+    if not bot or not DEVELOPER_ID or not WEBAPP_URL:
+        return
+    try:
+        labels = {"text": "💬 رسالة", "voice": "🎙️ بصمة صوتية", "image": "📷 صورة"}
+        label = labels.get(msg_type, "💬 رسالة")
+        preview = (content or "").strip()[:180]
+        text = f"{label} <b>جديدة من المنصة</b>\n👤 {user_name}\n🆔 <code>{user_id}</code>"
+        if preview:
+            text += f"\n\n{preview}"
+        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="👤 فتح محادثة المستخدم", url=admin_url)
+        ]])
+        await bot.send_message(chat_id=DEVELOPER_ID, text=text, reply_markup=kb, parse_mode="HTML")
+    except Exception as e:
+        logger.error(f"Failed to notify admin about web message: {e}")
 
 
 async def notify_admin_call_request(user_name: str, user_id: str, call_type: str, call_id: str):

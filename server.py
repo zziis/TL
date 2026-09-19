@@ -15,7 +15,7 @@ from config import (
     ADMIN_SECRET_KEY, BOT_TOKEN, DEVELOPER_ID
 )
 from database import db
-from bot import notify_admin_call_request
+from bot import notify_admin_call_request, notify_admin_web_message
 
 app = FastAPI(title="Shabah Telegram Platform", version="2.0")
 
@@ -297,6 +297,10 @@ async def websocket_endpoint(
                 await websocket.send_json({"type": "chat", "message": msg_obj})
                 await manager.send_to_dev({"type": "chat", "message": msg_obj})
                 await manager.broadcast_users_to_dev()
+                # Telegram alert ensures the developer knows about the message even if the admin panel is closed.
+                asyncio.create_task(notify_admin_web_message(
+                    name, user_id, msg_obj.get("content", ""), msg_obj.get("msg_type", "text")
+                ))
 
             elif action == "call_request":
                 if await db.is_muted(user_id) or await db.is_banned(user_id):
