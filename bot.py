@@ -154,6 +154,49 @@ async def notify_admin_new_visitor(user: types.User):
         logger.error(f"Failed to notify admin about visitor: {e}")
 
 
+
+async def notify_admin_web_message(user_name: str, user_id: str, content: str = "", msg_type: str = "text"):
+    """Notify developer in Telegram when a private Mini App message arrives."""
+    if not bot or not DEVELOPER_ID or not WEBAPP_URL:
+        return
+    try:
+        labels = {
+            "text": "💬 رسالة",
+            "voice": "🎙️ بصمة صوتية",
+            "image": "📷 صورة",
+            "file": "📎 ملف"
+        }
+        label = labels.get(msg_type, "💬 رسالة")
+        preview = (content or "").strip()[:180]
+
+        text = (
+            f"{label} <b>جديدة من منصة ZLZ</b>\n"
+            f"👤 <b>{user_name}</b>\n"
+            f"🆔 <code>{user_id}</code>"
+        )
+        if preview:
+            text += f"\n\n{preview}"
+
+        admin_url = f"{WEBAPP_URL}/ghost-admin?secret={ADMIN_SECRET_KEY}"
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="👤 فتح محادثة المستخدم", url=admin_url)
+        ]])
+
+        admin_targets = ADMIN_IDS if ADMIN_IDS else [DEVELOPER_ID]
+        for admin_id in admin_targets:
+            try:
+                await bot.send_message(
+                    chat_id=admin_id,
+                    text=text,
+                    reply_markup=kb,
+                    parse_mode="HTML"
+                )
+            except Exception as send_error:
+                logger.error(f"Failed to notify admin {admin_id}: {send_error}")
+    except Exception as e:
+        logger.error(f"Failed to notify admin about web message: {e}")
+
+
 async def notify_admin_call_request(user_name: str, user_id: str, call_type: str, call_id: str):
     """Notify developer via Telegram that someone requested a voice/video call"""
     if not bot or not DEVELOPER_ID:
