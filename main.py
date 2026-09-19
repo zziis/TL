@@ -17,7 +17,7 @@ async def run_fastapi_server():
         host=HOST,
         port=PORT,
         log_level="info",
-        access_log=True
+        access_log=False
     )
     server = uvicorn.Server(config)
     await server.serve()

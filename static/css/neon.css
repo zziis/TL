@@ -612,3 +612,32 @@ body::after {
   z-index: 500;
   box-shadow: 0 0 20px rgba(255, 0, 80, 0.5);
 }
+
+/* ===== ZLZ FAST UI UPDATE ===== */
+.skull-avatar-wrap {
+  width: 96px;
+  height: 96px;
+  filter: drop-shadow(0 0 8px #00eaff) drop-shadow(0 0 16px #b000ff);
+  animation: zlzEmblemGlow 1.65s ease-in-out infinite alternate;
+  will-change: transform, filter;
+  transform: translateZ(0);
+}
+.skull-avatar-wrap img,
+.remote-skull-mask img {
+  object-fit: cover;
+  border-radius: 50%;
+}
+@keyframes zlzEmblemGlow {
+  0% { transform: translate3d(0,0,0) scale(.98); filter: drop-shadow(0 0 6px #00eaff) drop-shadow(0 0 10px #7a00ff); }
+  100% { transform: translate3d(0,-3px,0) scale(1.035); filter: drop-shadow(0 0 13px #00eaff) drop-shadow(0 0 22px #ff00e6); }
+}
+/* Reduce expensive GPU blur on phones while preserving the neon look */
+.chat-window { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+@media (max-width: 600px) {
+  body::after { opacity: .22; }
+  .chat-window { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .message-bubble { animation-duration: .12s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skull-avatar-wrap, .status-dot { animation-duration: 3s; }
+}

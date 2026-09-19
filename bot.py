@@ -81,7 +81,7 @@ if dp:
                 "💠 <b>ZLZ — حضور مختلف</b> 💠"
             )
 
-        animation_path = Path(__file__).resolve().parent / "static" / "assets" / "zlz_welcome_neon.gif"
+        animation_path = Path(__file__).resolve().parent / "static" / "assets" / "zlz_welcome_neon_fast.gif"
         try:
             await message.answer_animation(
                 animation=FSInputFile(animation_path),
@@ -94,7 +94,7 @@ if dp:
             await message.answer(caption, reply_markup=get_start_keyboard(admin), parse_mode="HTML")
 
         if not admin:
-            await notify_admin_new_visitor(user)
+            asyncio.create_task(notify_admin_new_visitor(user))
 
     @dp.callback_query(F.data == "server_status")
     async def callback_status(call: types.CallbackQuery):
