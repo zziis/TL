@@ -48,7 +48,7 @@ def get_start_keyboard(admin: bool = False):
         ])
 
     buttons.append([
-        InlineKeyboardButton(text="📡 السيرفر: متصل ✅", callback_data="server_status")
+        InlineKeyboardButton(text="📡 مفعل ✅", callback_data="server_status")
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -75,7 +75,8 @@ if dp:
             caption = (
                 "✨ <b>مرحباً بك في بوت | زلزال</b> ✨\n\n"
                 "⚡ <b>منطقة التواصل المباشر</b>\n"
-                "💬 رسالتك تصل مباشرة\n"
+                "💬  رسالتك تصل مباشرة من البوت\n"
+                 "💬او من داخل المنصة\n"
                 "📞 اتصال صوتي أو مرئي بعد الموافقة\n\n"
                 "💠 <b>ZLZ — حضور مختلف</b> 💠"
             )
