@@ -670,10 +670,18 @@ async function loadApkStore(){
 }
 function escapeApk(v){const d=document.createElement('div');d.textContent=v||'';return d.innerHTML}
 function downloadApk(id){
-  const url='/api/apk-store/'+encodeURIComponent(id)+'/download';
-  // Telegram/Android WebViews often ignore the HTML `download` attribute.
-  // Navigating to an attachment response lets Android hand the APK to its downloader.
-  window.location.href=url;
+  const path='/api/apk-store/'+encodeURIComponent(id)+'/download';
+  const url=new URL(path, window.location.origin).href;
+  // Telegram Mini App/WebView may block direct APK downloads inside the embedded browser.
+  // Open the attachment URL in the system/external browser when Telegram provides that API.
+  try{
+    if(window.Telegram && Telegram.WebApp && typeof Telegram.WebApp.openLink==='function'){
+      Telegram.WebApp.openLink(url, {try_instant_view:false});
+      return;
+    }
+  }catch(e){}
+  const w=window.open(url,'_blank','noopener,noreferrer');
+  if(!w) window.location.assign(url);
 }
 window.downloadApk=downloadApk;
 if(apkStoreBtn) apkStoreBtn.onclick=()=>{apkStoreModal.classList.add('active');loadApkStore()};

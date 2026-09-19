@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import (
-    BASE_DIR, DATA_DIR, UPLOAD_DIR, STATIC_DIR, 
+    BASE_DIR, UPLOAD_DIR, STATIC_DIR, 
     ADMIN_SECRET_KEY, BOT_TOKEN, DEVELOPER_ID
 )
 from database import db
@@ -353,7 +353,7 @@ async def websocket_endpoint(
 # APK Store
 # ----------------------------------------------------
 import json
-APK_STORE_FILE = DATA_DIR / "apk_store.json"
+APK_STORE_FILE = BASE_DIR / "apk_store.json"
 APK_UPLOAD_DIR = UPLOAD_DIR / "apk"
 APK_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -381,12 +381,19 @@ async def apk_store_download(app_id: str):
     apk_path = APK_UPLOAD_DIR / filename
     if not filename or not apk_path.is_file():
         raise HTTPException(status_code=404, detail="APK file not found")
-    safe_name = "app.apk"
+    # ASCII filename avoids Content-Disposition issues in Android/Telegram WebViews.
+    safe_name = f"app-{app_id}.apk"
+    size = apk_path.stat().st_size
     return FileResponse(
-        apk_path,
+        path=apk_path,
         media_type="application/vnd.android.package-archive",
         filename=safe_name,
-        headers={"Cache-Control": "no-store"}
+        content_disposition_type="attachment",
+        headers={
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            "X-Content-Type-Options": "nosniff",
+            "Content-Length": str(size),
+        }
     )
 
 @app.post("/api/admin/apk-store")
