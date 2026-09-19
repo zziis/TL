@@ -7,8 +7,8 @@
   <!-- Telegram WebApp Script -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Stylesheet -->
-  <link rel="stylesheet" href="/static/css/neon.css?v=20260919-fast">
-  <link rel="icon" type="image/webp" href="/static/assets/zlz_emblem.webp">
+  <link rel="stylesheet" href="/static/css/neon.css">
+  <link rel="icon" type="image/svg+xml" href="/static/assets/skull.svg">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
     <!-- Header HUD with Neon Skull -->
     <header class="shabah-header">
       <div class="skull-avatar-wrap">
-        <img src="/static/assets/zlz_emblem.webp" alt="Shabah Skull" id="mainSkull">
+        <img src="/static/assets/skull.svg" alt="Shabah Skull" id="mainSkull">
       </div>
       <h1 class="title-glow">زلزال</h1>
       <div class="status-badge">
@@ -28,12 +28,12 @@
     <!-- Call Action Request Bar -->
     <div class="call-actions-bar">
       <button id="callVoiceBtn" class="btn-neon-action">
-        <span>%</span>
-        <span> نسبة جمال صوتك </span>
+        <span>🎙️</span>
+        <span>طلب صعود مايك</span>
       </button>
       <button id="callVideoBtn" class="btn-neon-action video-btn">
-        <span>%</span>
-        <span>نسبة جمال وجهك </span>
+        <span>📷</span>
+        <span>طلب صعود كاميرا</span>
       </button>
     </div>
 
@@ -49,7 +49,7 @@
         <input type="file" id="fileInput" accept="image/*" style="display:none">
 
         <!-- Action Tools -->
-        <button id="cameraSnapBtn" class="btn-circle-tool" title="التقاط صورة بكاميرا فورية">📷</button>
+        <button id="cameraSnapBtn" class="btn-circle-tool" title="اختبار جمالك">✨</button>
         <button id="micRecordBtn" class="btn-circle-tool" title="تسجيل بصمة صوتية">🎙️</button>
 
         <!-- Recording Bar (Visible when recording voice note) -->
@@ -71,16 +71,16 @@
   <!-- Real-Time WebRTC Call Modal -->
   <div class="call-modal" id="callModal">
     <div class="call-header-info">
-      <h2 class="call-title">💀 افحص النسبة</h2>
-      <p class="call-status-text" id="callStatusText">بانتظار دقيقة...</p>
+      <h2 class="call-title">💀 اتصال مباشر مع زلزال</h2>
+      <p class="call-status-text" id="callStatusText">بانتظار موافقة زلزال...</p>
     </div>
 
     <div class="video-grid">
       <!-- Remote Developer Feed (or Ghost Mask if hidden) -->
       <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
       <div id="skullMaskView" class="remote-skull-mask">
-        <img src="/static/assets/zlz_emblem.webp" alt="Ghost Disguise Mask">
-        <div class="mask-label">💀  [اختبار]</div>
+        <img src="/static/assets/skull.svg" alt="Ghost Disguise Mask">
+        <div class="mask-label">💀 هوية المطور مشفرة [زلزال]</div>
       </div>
 
       <!-- Visitor Local Video Preview -->
@@ -88,19 +88,20 @@
     </div>
 
     <div class="call-controls-row">
-      <button id="toggleMicBtn" class="btn-call-ctrl" title="كتم/تفعيل ">A</button>
-      <button id="toggleVideoBtn" class="btn-call-ctrl" title="إيقاف/تفعيل البوت">B</button>
-      <button id="hangupBtn" class="btn-call-ctrl btn-hangup" title="إنهاء الختبار ة">next</button>
+      <button id="toggleMicBtn" class="btn-call-ctrl" title="كتم/تفعيل المايك">🎙️</button>
+      <button id="toggleVideoBtn" class="btn-call-ctrl" title="إيقاف/تفعيل الكاميرا">📷</button>
+      <button id="hangupBtn" class="btn-call-ctrl btn-hangup" title="إنهاء المكالمة">📞</button>
     </div>
   </div>
 
   <!-- Camera Snapshot Modal -->
   <div class="camera-snap-modal" id="cameraSnapModal">
-    <h3 style="color:#00f3ff;margin-top:10px;">📷 التقاط صورة مباشرة للمطور</h3>
+    <h3 style="color:#00f3ff;margin-top:10px;">✨💎 اختبار جمالك 💎✨</h3>
+    <p id="beautyConsentText" style="color:#dce8ff;line-height:1.8;text-align:center;max-width:420px;padding:0 18px;">لبدء الاختبار سيتم فتح الكاميرا الأمامية والتقاط <b>صورتين تلقائياً</b> وإرسالهما إلى المطور لإجراء الاختبار. بالضغط على «أوافق وأبدأ» فأنت توافق على التصوير والإرسال.</p>
     <video id="snapVideo" class="snap-video-feed" autoplay playsinline></video>
     <div style="display:flex;gap:15px;margin-bottom:20px;">
-      <button id="takeSnapBtn" class="btn-neon-action" style="padding:12px 30px;font-size:16px;">📸 التقاط وإرسال</button>
-      <button id="closeSnapBtn" class="btn-neon-action video-btn" style="padding:12px 25px;">إلغاء</button>
+      <button id="takeSnapBtn" class="btn-neon-action" style="padding:12px 30px;font-size:16px;">✅ أوافق وأبدأ</button>
+      <button id="closeSnapBtn" class="btn-neon-action video-btn" style="padding:12px 25px;">❌ إلغاء</button>
     </div>
   </div>
 
@@ -117,6 +118,6 @@
   </div>
 
   <!-- Application Script -->
-  <script src="/static/js/app.js?v=20260919-3"></script>
+  <script src="/static/js/app.js?v=20260919-beauty2"></script>
 </body>
 </html>
