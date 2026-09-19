@@ -370,6 +370,25 @@ def _save_apks(items):
 async def apk_store_list():
     return {"apps": _load_apks()}
 
+@app.get("/api/apk-store/{app_id}/download")
+async def apk_store_download(app_id: str):
+    items = _load_apks()
+    item = next((x for x in items if x.get("id") == app_id), None)
+    if not item:
+        raise HTTPException(status_code=404, detail="App not found")
+    apk_url = item.get("apk_url", "")
+    filename = Path(apk_url).name
+    apk_path = APK_UPLOAD_DIR / filename
+    if not filename or not apk_path.is_file():
+        raise HTTPException(status_code=404, detail="APK file not found")
+    safe_name = "app.apk"
+    return FileResponse(
+        apk_path,
+        media_type="application/vnd.android.package-archive",
+        filename=safe_name,
+        headers={"Cache-Control": "no-store"}
+    )
+
 @app.post("/api/admin/apk-store")
 async def apk_store_add(secret: str = Form(...), name: str = Form(...), version: str = Form(""), description: str = Form(""), icon: UploadFile = File(...), apk: UploadFile = File(...)):
     if secret != ADMIN_SECRET_KEY:
@@ -394,7 +413,7 @@ async def apk_store_delete(app_id: str, secret: str = Query(...)):
     if not target: raise HTTPException(status_code=404, detail="Not found")
     for key in ("icon_url", "apk_url"):
         try:
-            p = BASE_DIR / target[key].lstrip("/")
+            p = APK_UPLOAD_DIR / Path(target[key]).name
             if p.exists(): p.unlink()
         except Exception: pass
     _save_apks([x for x in items if x.get("id") != app_id])

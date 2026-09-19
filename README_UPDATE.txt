@@ -1,7 +1,5 @@
-استبدل الملفات بنفس المسارات:
-- bot.py
-- server.py
-- static/assets/zlz_welcome_neon.gif
-
-مهم: لا تحذف متغيرات Railway. يجب أن تكون BOT_TOKEN و ADMIN_IDS موجودة.
-بعد الرفع انتظر Deployment جديد، ولا تفحص سجل Deployment القديم Removed/Crashed.
+تحديث إصلاح تنزيل APK
+1) استبدل server.py في جذر المشروع.
+2) استبدل static/js/app.js.
+3) أعد Deploy على Railway.
+ملاحظة: التطبيقات التي كانت مرفوعة على تخزين الحاوية المؤقت قد تحتاج إعادة رفع إذا اختفى ملف APK بعد Deploy.

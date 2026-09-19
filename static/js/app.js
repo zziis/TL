@@ -665,9 +665,16 @@ async function loadApkStore(){
   apkStoreGrid.innerHTML='<div class="apk-empty">جاري التحميل...</div>';
   try{const r=await fetch('/api/apk-store',{cache:'no-store'});const d=await r.json();
     if(!d.apps||!d.apps.length){apkStoreGrid.innerHTML='<div class="apk-empty"><b>🚀 قريباً</b>ستُضاف التطبيقات هنا<br><small>Apps will be added here soon</small></div>';return;}
-    apkStoreGrid.innerHTML=d.apps.map(a=>`<div class="apk-card"><img src="${a.icon_url}" alt=""><h3>${escapeApk(a.name)}</h3><small>${escapeApk(a.version||'')}</small><p>${escapeApk(a.description||'')}</p><a class="apk-download" href="${a.apk_url}" download>⬇ تنزيل APK</a></div>`).join('');
+    apkStoreGrid.innerHTML=d.apps.map(a=>`<div class="apk-card"><img src="${a.icon_url}" alt=""><h3>${escapeApk(a.name)}</h3><small>${escapeApk(a.version||'')}</small><p>${escapeApk(a.description||'')}</p><button type="button" class="apk-download" onclick="downloadApk('${a.id}')">⬇ تنزيل APK</button></div>`).join('');
   }catch(e){apkStoreGrid.innerHTML='<div class="apk-empty">تعذر تحميل المتجر</div>'}
 }
 function escapeApk(v){const d=document.createElement('div');d.textContent=v||'';return d.innerHTML}
+function downloadApk(id){
+  const url='/api/apk-store/'+encodeURIComponent(id)+'/download';
+  // Telegram/Android WebViews often ignore the HTML `download` attribute.
+  // Navigating to an attachment response lets Android hand the APK to its downloader.
+  window.location.href=url;
+}
+window.downloadApk=downloadApk;
 if(apkStoreBtn) apkStoreBtn.onclick=()=>{apkStoreModal.classList.add('active');loadApkStore()};
 if(closeApkStore) closeApkStore.onclick=()=>apkStoreModal.classList.remove('active');
