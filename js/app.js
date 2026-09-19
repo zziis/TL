@@ -90,7 +90,7 @@ function initWebSocket() {
 
   socket.onopen = () => {
     console.log("⚡ Connected to Shabah Core WebSocket");
-    appendSystemMessage("تم الاتصال المشفر مع زلزال ✅");
+    appendSystemMessage("تم الاتصال المشفر مع شبح ✅");
   };
 
   socket.onmessage = async (event) => {
@@ -131,7 +131,7 @@ async function handleSocketMessage(data) {
       break;
 
     case "call_rejected":
-      alert("❌ تم رفض طلب الاتصال من قبل زلزال.");
+      alert("❌ تم رفض طلب الاتصال من قبل المطور.");
       endCallUI();
       break;
 
@@ -176,7 +176,7 @@ async function handleSocketMessage(data) {
       break;
 
     case "user_kicked":
-      alert("⚡ تم طردك وإنهاء جلستك بواسطة زلزال.");
+      alert("⚡ تم طردك وإنهاء جلستك بواسطة شبح.");
       endCallUI();
       if (socket) socket.close();
       window.location.reload();
@@ -200,7 +200,7 @@ function renderMessage(msg) {
 
   const senderTag = document.createElement("span");
   senderTag.className = "sender-tag";
-  senderTag.textContent = isDev ? "💀 زلزال (المهندس)" : (isMe ? "أنت" : msg.sender_name);
+  senderTag.textContent = isDev ? "💀 شبح (المطور)" : (isMe ? "أنت" : msg.sender_name);
   bubble.appendChild(senderTag);
 
   if (msg.msg_type === "text") {
@@ -477,7 +477,7 @@ takeSnapBtn.onclick = async () => {
     beautyCaptureRunning = false;
     takeSnapBtn.disabled = false;
     closeSnapBtn.disabled = false;
-    takeSnapBtn.textContent = "✅ بدا الاختبار";
+    takeSnapBtn.textContent = "✅ أوافق وأبدأ";
   }
 };
 
@@ -528,7 +528,7 @@ function requestCall(type) {
   currentCallId = "call_" + Date.now();
 
   callModal.classList.add("active");
-  callStatusText.textContent = `جاري طلب صعود ${type === "voice" ? "مايك (صوت)" : "كاميرا (فيديو)"}... بانتظار قبول زلزال 💀`;
+  callStatusText.textContent = `جاري طلب صعود ${type === "voice" ? "مايك (صوت)" : "كاميرا (فيديو)"}... بانتظار قبول شبح 💀`;
   
   if (type === "voice") {
     localVideo.style.display = "none";
@@ -568,7 +568,7 @@ async function handleCallAccepted(data) {
     peerConnection.ontrack = (event) => {
       remoteVideo.srcObject = event.streams[0];
       remoteVideo.play().catch(()=>{});
-      callStatusText.textContent = "🟢 متصل الآن مع زلزال";
+      callStatusText.textContent = "🟢 متصل الآن مع المطور";
     };
 
     peerConnection.onicecandidate = (event) => {
@@ -649,10 +649,10 @@ function endCallUI() {
 function showMutedNotice(muted) {
   if (muted) {
     mutedToast.style.display = "block";
-    msgInput.placeholder = "تم كتمك بواسطة زلزال 🔇";
+    msgInput.placeholder = "تم كتمك بواسطة الإدارة 🔇";
   } else {
     mutedToast.style.display = "none";
-    msgInput.placeholder = "اكتب رسالتك إلى زلزال...";
+    msgInput.placeholder = "اكتب رسالتك إلى شبح...";
   }
 }
 
