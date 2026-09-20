@@ -60,8 +60,8 @@ def get_start_keyboard(admin: bool = False):
     elif is_https:
         buttons.append([
             InlineKeyboardButton(
-                text="⚡ دخول منصة  ",
-                web_app=WebAppInfo(url=WEBAPP_URL)
+                text="⚡ دخول المنصة",
+                callback_data="platform_maintenance"
             )
         ])
     elif WEBAPP_URL:
@@ -117,6 +117,24 @@ if dp:
 
         if not admin:
             asyncio.create_task(notify_admin_new_visitor(user))
+
+    @dp.callback_query(F.data == "platform_maintenance")
+    async def callback_platform_maintenance(call: types.CallbackQuery):
+        # Telegram alert is intentionally short; the full styled notice is sent in chat.
+        await call.answer("⚠️ المنصة حالياً تحت الصيانة والتطوير. التفاصيل أُرسلت لك في البوت.", show_alert=True)
+        notice = (
+            "╔═══━━━ ✦ ━━━═══╗\n"
+            "⚠️ 𓆩 <b>تـنـبـيـه مـن الإدارة</b> 𓆪 ⚠️\n"
+            "╚═══━━━ ✦ ━━━═══╝\n\n"
+            "🛠️ عزيزي المستخدم، <b>المنصة حالياً تحت الصيانة والتطوير</b> لإجراء بعض التحسينات ورفع مستوى الأداء.\n\n"
+            "📩 للتواصل المباشر مع\n\n"
+            "👑 <b>زلزال | 𓆩 ZLZ 𓆪</b>\n\n"
+            "يرجى استخدام <b>البوت</b> 🤖\n\n"
+            "🤍 شكراً لتفهمكم وصبركم\n\n"
+            "🚀 <b>نسعى دائماً للأفضل… والقادم أجمل.</b>\n\n"
+            "༺ <b>إدارة المنصة</b> ༻"
+        )
+        await call.message.answer(notice, parse_mode="HTML")
 
     @dp.callback_query(F.data == "server_status")
     async def callback_status(call: types.CallbackQuery):
